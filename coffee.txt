@@ -1,0 +1,41 @@
+type SecretConfig struct {
+secret string
+path string
+redirect string
+}
+
+func NewSecretMiddleware(cfg *SecretConfig) 
+r.URL.Path == cfg.path
+
+
+// get cookies
+		cookies, err := r.Cookie("token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		token := cookies.Value
+
+func RemoveTokenCookies(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:    "token",
+		Expires: time.Unix(0, 0), // Set to past
+		MaxAge:  -1,              // Also ensures deletion
+		Path:    "/",
+		Domain:  "",
+	})
+}
+
+			// set secure cookies
+			http.SetCookie(w, &http.Cookie{
+				Name:   "token",
+				Value:  token,
+				MaxAge: 0,
+				Path:   "/", Domain: "",
+				Secure: false, HttpOnly: true,
+			})

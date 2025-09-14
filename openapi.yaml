@@ -1,0 +1,700 @@
+openapi: 3.0.3
+info:
+  title: Bug Hunting Record & Analysis API
+  version: 1.0.0
+  description: >
+    API for recording HTTP requests, managing notes, attachments, programs, and endpoints,
+    and analyzing them for bug hunting.
+    Errors are always returned as `text/plain` with a string message.
+    Authentication is handled by starting a session with `/start_session`.
+
+servers:
+  - url: http://localhost:8081
+
+# === Authentication ===
+paths:
+  /start_session:
+    get:
+      summary: Start a new session
+      description: >
+        Authenticate using a secret and receive an HttpOnly, SameSite=Strict cookie.
+      parameters:
+        - name: secret
+          in: query
+          description: Secret key for authentication
+          required: true
+          schema:
+            type: string
+            example: "super_secret_key"
+      responses:
+        "200":
+          description: Session started successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "session started"
+        "401":
+          description: Invalid secret
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "invalid secret"
+
+# === Notes Endpoints ===
+  /notes:
+    post:
+      summary: Create a note
+      description: Creates a note linked to a program, endpoint, or request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reference_type, reference_id, value] # reference_type and reference_id are hidden and will comes from the associated Endpoint, Program or Request
+              properties:
+                reference_type:
+                  type: string
+                  enum: [programs, endpoints, requests]
+                  description: Type of resource the note is associated with
+                  example: "programs"
+                reference_id:
+                  type: integer
+                  description: ID of the referenced resource
+                  example: 123
+                value:
+                  type: string
+                  description: Content of the note
+                  example: "Found a vulnerability in login endpoint"
+      responses:
+        "201":
+          description: Note created successfully (returns the note ID as plain text)
+          content:
+            text/plain:
+              schema:
+                type: integer
+                example: 101
+        "400":
+          description: Invalid input
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "invalid request body"
+
+    get:
+      summary: List notes
+      description: Retrieve a list of notes, optionally filtered by type or search string
+      parameters:
+        - name: type
+          in: query
+          description: Filter notes by type
+          schema:
+            type: string
+            enum: [endpoint, request, program]
+            example: "endpoint"
+        - name: search
+          in: query
+          description: Filter notes by search string in value
+          schema:
+            type: string
+            example: "login"
+      responses:
+        "200":
+          description: Array of notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/note"
+
+  /notes/{id}:
+    get:
+      summary: Get a note
+      parameters:
+        - name: id
+          in: path
+          description: ID of the note to retrieve
+          required: true
+          schema:
+            type: integer
+            example: 101
+      responses:
+        "200":
+          description: Note details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/note_detail"
+        "404":
+          description: Note not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "note not found"
+
+    delete:
+      summary: Delete a note
+      description: Deletes a note by ID
+      parameters:
+        - name: id
+          in: path
+          description: ID of the note to delete
+          required: true
+          schema:
+            type: integer
+            example: 101
+      responses:
+        "204":
+          description: Note deleted successfully
+        "404":
+          description: Note not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "note not found"
+
+    patch:
+      summary: Update note value
+      description: Updates only the `value` of a note
+      parameters:
+        - name: id
+          in: path
+          description: ID of the note to update
+          required: true
+          schema:
+            type: integer
+            example: 101
+        - name: value
+          in: query
+          description: New value for the note
+          required: true
+          schema:
+            type: string
+            example: "Updated note value"
+      responses:
+        "201":
+          description: Note updated successfully (no body)
+        "404":
+          description: Note not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "note not found"
+
+# === Attachments ===
+  /attachments:
+    post:
+      summary: Upload an attachment
+      description: Upload a file linked to a program, endpoint, or request
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [reference_type, reference_id, file] # reference_type and reference_id are hidden and will comes from the associated Endpoint, Program or Request
+              properties:
+                reference_type:
+                  type: string
+                  enum: [programs, endpoints, requests]
+                  description: Type of resource the attachment is associated with
+                  example: "endpoints"
+                reference_id:
+                  type: integer
+                  description: ID of the referenced resource
+                  example: 123
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload
+      responses:
+        "201":
+          description: Attachment created successfully (returns the attachment ID as plain text)
+          content:
+            text/plain:
+              schema:
+                type: integer
+                example: 555
+        "400":
+          description: Invalid input
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "invalid file"
+
+    delete:
+      summary: Delete an attachment
+      description: Deletes an attachment by ID
+      parameters:
+        - name: id
+          in: query
+          description: ID of the attachment to delete
+          required: true
+          schema:
+            type: integer
+            example: 555
+      responses:
+        "204":
+          description: Attachment deleted successfully
+        "404":
+          description: Attachment not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "attachment not found"
+
+# === Programs ===
+  /programs:
+    post:
+      summary: Create a program
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/program_input"
+      responses:
+        "201":
+          description: Program created successfully (returns program ID as plain text)
+          content:
+            text/plain:
+              schema:
+                type: integer
+                example: 1
+
+    get:
+      summary: List programs
+      responses:
+        "200":
+          description: Array of programs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/program_list"
+
+  /programs/{id}:
+    get:
+      summary: Get program details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Program ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: Program details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/program_detail"
+        "404":
+          description: Program not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "program not found"
+
+    put:
+      summary: Update a program
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/program_input"
+      responses:
+        "200":
+          description: Program updated successfully (no body)
+
+    delete:
+      summary: Delete a program
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Program deleted successfully
+
+# === Endpoints ===
+  /endpoints:
+    post:
+      summary: Create an endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/endpoint_input"
+      responses:
+        "201":
+          description: Endpoint created successfully (returns endpoint ID as plain text)
+          content:
+            text/plain:
+              schema:
+                type: integer
+                example: 10
+
+    get:
+      summary: List endpoints
+      responses:
+        "200":
+          description: Array of endpoints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/endpoint_list"
+
+  /endpoints/{id}:
+    get:
+      summary: Get endpoint details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Endpoint ID
+          schema:
+            type: integer
+            example: 10
+      responses:
+        "200":
+          description: Endpoint details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/endpoint_detail"
+        "404":
+          description: Endpoint not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "endpoint not found"
+
+    put:
+      summary: Update an endpoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/endpoint_input"
+      responses:
+        "200":
+          description: Endpoint updated successfully (no body)
+
+    delete:
+      summary: Delete an endpoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Endpoint deleted successfully
+
+# === Requests ===
+  /requests:
+    get:
+      summary: List requests
+      description: Retrieve HTTP requests with advanced filtering
+      parameters:
+        - name: program_id
+          in: query
+          schema: { type: integer }
+          description: Filter by program ID
+        - name: endpoint_id
+          in: query
+          schema: { type: integer }
+          description: Filter by endpoint ID
+        - name: job_id
+          in: query
+          schema: { type: integer }
+          description: Filter by job ID
+        - name: raw_sql
+          in: query
+          schema: { type: string }
+          description: Custom SQL filter
+        - name: order_by
+          in: query
+          schema:
+            type: string
+            enum: [method, content_type, size, latency, url, sequence_number]
+            description: Field to sort by
+        - name: asc
+          in: query
+          schema:
+            type: boolean
+            description: Ascending or descending order
+      responses:
+        "200":
+          description: Array of requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/request_list"
+
+  /requests/{id}:
+    get:
+      summary: Get request details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Request details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/request_detail"
+        "404":
+          description: Request not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "request not found"
+
+# === Import HAR ===
+  /import_har:
+    post:
+      summary: Import HAR file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, program_id]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: HAR file to import
+                program_id:
+                  type: integer
+                  description: ID of the program to associate the import with
+                  example: 1
+                ignored_headers:
+                  type: string
+                  description: Headers to ignore during processing (JSON string)
+                  example: "[\"User-Agent\", \"Accept-Encoding\"]"
+      responses:
+        "201":
+          description: Import job created (returns job ID as plain text)
+          content:
+            text/plain:
+              schema:
+                type: integer
+                example: 77
+
+# === Jobs ===
+  /jobs:
+    get:
+      summary: List jobs
+      responses:
+        "200":
+          description: Array of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/job"
+
+# === Components ===
+components:
+  schemas:
+    note:
+      type: object
+      properties:
+        id: { type: integer }
+        reference_type: { type: string }
+        reference_id: { type: integer }
+        value: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    note_listing:
+      type: object
+      description: Minimal note info used in embedded lists
+      properties:
+        id: { type: integer }
+        value: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    note_detail:
+      type: object
+      properties:
+        id: { type: integer }
+        reference_type: { type: string }
+        reference_id: { type: integer }
+        value: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    attachment:
+      type: object
+      properties:
+        id: { type: integer }
+        filename: { type: string }
+        url: { type: string }
+
+    program_input:
+      type: object
+      required: [name, url, scope, domains, note]
+      properties:
+        name: { type: string, example: "My Program" }
+        url: { type: string, example: "https://example.com" }
+        scope: { type: string, example: "internal" }
+        domains: { type: string, example: "example.com" }
+        note: { type: string, example: "Initial program note" }
+
+    program_list:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        url: { type: string }
+
+    program_detail:
+      allOf:
+        - $ref: "#/components/schemas/program_list"
+        - type: object
+          properties:
+            scope: { type: string }
+            domains: { type: string }
+            note: { type: string }
+            notes:
+              type: array
+              items: { $ref: "#/components/schemas/note_listing" }
+            attachments:
+              type: array
+              items: { $ref: "#/components/schemas/attachment" }
+
+    endpoint_input:
+      type: object
+      required: [domain, program_id, method, uri, endpoint_type, description]
+      properties:
+        domain: { type: string }
+        program_id: { type: integer }
+        method: { type: string, example: "GET" }
+        uri: { type: string, example: "/login" }
+        endpoint_type: { type: string, enum: [web, api] }
+        description: { type: string }
+
+    endpoint_list:
+      type: object
+      properties:
+        id: { type: integer }
+        program_id: { type: integer }
+        program_name: { type: string }
+        domain: { type: string }
+        uri: { type: string }
+        method: { type: string }
+        endpoint_type: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    endpoint_detail:
+      allOf:
+        - $ref: "#/components/schemas/endpoint_list"
+        - type: object
+          properties:
+            description: { type: string }
+            notes:
+              type: array
+              items: { $ref: "#/components/schemas/note_listing" }
+            attachments:
+              type: array
+              items: { $ref: "#/components/schemas/attachment" }
+          created_at: { type: string, format: date-time }
+          updated_at: { type: string, format: date-time }
+
+    request_list:
+      type: object
+      description: search_results returns a list of matched strings if requests search query exists
+      properties:
+        id: { type: integer }
+        program_id: { type: integer }
+        program_name: { type: string }
+        endpoint_id: { type: integer }
+        endpoint_name: { type: string }
+        job_id: { type: integer }
+        sequence_number: { type: integer }
+        url: { type: string }
+        method: { type: string }
+        domain: { type: string }
+        status_code: { type: integer }
+        search_results:
+          type: array
+          items: { type: string }
+
+    request_detail:
+      allOf:
+        - $ref: "#/components/schemas/request_list"
+        - type: object
+          properties:
+            request_headers: { type: string }
+            request_body: {}
+            response_body: {}
+            response_headers: {}
+            req_hash: { type: string }
+            response_hash: { type: string }
+            response_body_hash: { type: string }
+            latency_ms: { type: integer }
+            notes:
+              type: array
+              items: { $ref: "#/components/schemas/note_listing" }
+            attachments:
+              type: array
+              items: { $ref: "#/components/schemas/attachment" }
+
+    job:
+      type: object
+      properties:
+        id: { type: integer }
+        job_type: { type: string, enum: [import_har, import_xml] }
+        title: { type: string }
+        progress: { type: integer, minimum: 1, maximum: 100 }
+        created_at: { type: string, format: date-time }
+        description: { type: string }
