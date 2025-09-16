@@ -12,7 +12,6 @@ import (
 
 // RegisterRoutes registers all routes for the application
 func (app *App) RegisterRoutes() *http.ServeMux {
-	handler := handlers.Handler{}
 	uploadDir := utils.GetEnv("UPLOAD_DIR", "./uploads")
 	maxFileSize := utils.GetEnv("MAX_FILE_SIZE", "10485760") // 10MB in bytes
 	allowedTypes := []string{
@@ -80,8 +79,14 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("DELETE /endpoints/{id}", endpointHandler.Delete)
 
 	// Requests
-	mux.HandleFunc("GET /requests", handler.ListRequests)
-	mux.HandleFunc("GET /requests/{id}", handler.GetRequest)
+	requestService := services.RequestService{
+		DB: app.DB,
+	}
+	requestHandler := handlers.RequestHandler{
+		Service: &requestService,
+	}
+	mux.HandleFunc("GET /requests", requestHandler.List)
+	mux.HandleFunc("GET /requests/{id}", requestHandler.Get)
 
 	// Import HAR
 	importHarService := services.ImportHarService{
@@ -97,6 +102,11 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 		Service: &importHarService,
 	}
 	mux.HandleFunc("GET /jobs", jobHandler.ListJobs)
+
+	// Add Swagger UI routes for development
+	// To disable in production, comment out the following line:
+	addSwaggerRoutes(mux)
+
 	return mux
 }
 
@@ -108,4 +118,25 @@ func parseMaxFileSize(sizeStr string) int64 {
 		return 10 * 1024 * 1024 // 10MB default
 	}
 	return size
+}
+
+// addSwaggerRoutes adds Swagger UI routes for development
+// To disable in production, comment out the call to this function in RegisterRoutes()
+func addSwaggerRoutes(mux *http.ServeMux) {
+	// Serve OpenAPI spec
+	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/x-yaml")
+		http.ServeFile(w, r, "./openapi.yaml")
+	})
+
+	// Create a file server for Swagger UI static files
+	swaggerFS := http.FileServer(http.Dir("./swagger/"))
+
+	// Handle /swagger route - redirect to /swagger/
+	mux.HandleFunc("GET /swagger", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/swagger/", http.StatusMovedPermanently)
+	})
+
+	// Handle /swagger/ and all sub-paths
+	mux.Handle("GET /swagger/", http.StripPrefix("/swagger/", swaggerFS))
 }

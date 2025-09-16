@@ -21,7 +21,7 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	note := &models.Note{
 		ReferenceType: input.ReferenceType,
-		ReferenceId:   input.ReferenceId,
+		ReferenceID:   input.ReferenceId,
 		Value:         input.Value,
 	}
 

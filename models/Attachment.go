@@ -13,7 +13,7 @@ type Attachment struct {
 	FileSize      int64     `gorm:"not null"`
 	MimeType      string    `gorm:"size:100"`
 	ReferenceType string    `gorm:"size:20;not null;index"` // "programs", "endpoints", "requests"
-	ReferenceId   int       `gorm:"not null;index"`
+	ReferenceID   int       `gorm:"not null;index"`         // Changed from ReferenceId to ReferenceID for GORM polymorphic
 	CreatedAt     time.Time `gorm:"autoCreateTime"`
 	UpdatedAt     time.Time `gorm:"autoUpdateTime"`
 }

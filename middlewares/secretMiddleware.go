@@ -25,7 +25,7 @@ func (cfg *SecretConfig) Middleware() func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			currentUrl := r.URL.Path
-			if currentUrl == cfg.SecretPath {
+			if currentUrl == "/"+cfg.SecretPath {
 				pretendSecret := r.URL.Query().Get("secret")
 				if pretendSecret == theSecret {
 					// authentication success

@@ -91,5 +91,5 @@ func (h *EndpointHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.OkJson(w, endpoint)
+	utils.OkJson(w, ToEndpointDetail(endpoint))
 }

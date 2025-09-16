@@ -6,7 +6,7 @@ import "time"
 type Note struct {
 	Id            int       `gorm:"primaryKey"`
 	ReferenceType string    `gorm:"size:20;not null;index"` // "programs", "endpoints", "requests"
-	ReferenceId   int       `gorm:"not null;index"`
+	ReferenceID   int       `gorm:"not null;index"`         // Changed from ReferenceId to ReferenceID for GORM polymorphic
 	Value         string    `gorm:"type:text;not null"`
 	CreatedAt     time.Time `gorm:"autoCreateTime"`
 	UpdatedAt     time.Time `gorm:"autoUpdateTime"`

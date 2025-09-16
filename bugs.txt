@@ -1,0 +1,2 @@
+/requests/1, programId, programName zero. Import HAR file does not link the resulting requests with program_id from input form or request details handler is not loading program properly.
+/programs/1 is not loading Attachments, or CreateAttachment does not work with reference_type of programs

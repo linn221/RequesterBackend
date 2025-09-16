@@ -91,5 +91,5 @@ func (h *ProgramHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.OkJson(w, program)
+	utils.OkJson(w, ToProgramDetail(program))
 }

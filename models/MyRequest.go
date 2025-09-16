@@ -36,6 +36,10 @@ type MyRequest struct {
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 
+	// Belongs to relationships
+	Program  *Program  `gorm:"foreignKey:ProgramId"`
+	Endpoint *Endpoint `gorm:"foreignKey:EndpointId"`
+
 	// Polymorphic relationships
 	Attachments []Attachment `gorm:"polymorphic:Reference;polymorphicValue:requests"`
 	Notes       []Note       `gorm:"polymorphic:Reference;polymorphicValue:requests"`

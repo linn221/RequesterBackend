@@ -64,7 +64,7 @@ func (s *AttachmentService) UploadAttachment(file *multipart.FileHeader, referen
 		FileSize:      file.Size,
 		MimeType:      file.Header.Get("Content-Type"),
 		ReferenceType: referenceType,
-		ReferenceId:   referenceId,
+		ReferenceID:   referenceId,
 	}
 
 	// Save to database

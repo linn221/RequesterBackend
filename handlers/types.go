@@ -1,6 +1,9 @@
 package handlers
 
-import "github.com/linn221/RequesterBackend/models"
+import (
+	"github.com/linn221/RequesterBackend/models"
+	"github.com/linn221/RequesterBackend/services"
+)
 
 // ===== Notes =====
 type CreateNoteRequest struct {
@@ -38,7 +41,7 @@ func ToNote(note *models.Note) *Note {
 	return &Note{
 		Id:            note.Id,
 		ReferenceType: note.ReferenceType,
-		ReferenceId:   note.ReferenceId,
+		ReferenceId:   note.ReferenceID,
 		Value:         note.Value,
 		CreatedAt:     note.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:     note.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -58,7 +61,7 @@ func ToNoteDetail(note *models.Note) *NoteDetail {
 	return &NoteDetail{
 		Id:            note.Id,
 		ReferenceType: note.ReferenceType,
-		ReferenceId:   note.ReferenceId,
+		ReferenceId:   note.ReferenceID,
 		Value:         note.Value,
 		CreatedAt:     note.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:     note.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -309,4 +312,100 @@ type ImportHarRequest struct {
 	ProgramId      int    `form:"program_id" validate:"required"`
 	IgnoredHeaders string `form:"ignored_headers"`
 	// file handled as multipart
+}
+
+// ===== Request Conversion Functions =====
+func ToRequestList(request *models.MyRequest, searchResults []string) *RequestList {
+	programName := ""
+	programId := 0
+	if request.ProgramId != nil {
+		programId = *request.ProgramId
+		if request.Program != nil {
+			programName = request.Program.Name
+		}
+	}
+
+	endpointName := ""
+	if request.Endpoint != nil {
+		endpointName = request.Endpoint.URI
+	}
+
+	return &RequestList{
+		Id:             request.Id,
+		ProgramId:      programId,
+		ProgramName:    programName,
+		EndpointId:     request.EndpointId,
+		EndpointName:   endpointName,
+		JobId:          request.ImportJobId,
+		SequenceNumber: request.Sequence,
+		URL:            request.URL,
+		Method:         request.Method,
+		Domain:         request.Domain,
+		StatusCode:     request.ResStatus,
+		SearchResults:  searchResults,
+	}
+}
+
+func ToRequestDetail(request *models.MyRequest) *RequestDetail {
+	programName := ""
+	programId := 0
+	if request.ProgramId != nil {
+		programId = *request.ProgramId
+		if request.Program != nil {
+			programName = request.Program.Name
+		}
+	}
+
+	endpointName := ""
+	if request.Endpoint != nil {
+		endpointName = request.Endpoint.URI
+	}
+
+	// Parse headers and body
+	_, _ = services.ParseRequestHeaders(request.ReqHeaders)
+	responseHeaders, _ := services.ParseResponseHeaders(request.ResHeaders)
+	requestBody, _ := services.ParseRequestBody(request.ReqBody)
+	responseBody, _ := services.ParseResponseBody(request.ResBody)
+
+	// Convert notes
+	notes := make([]NoteListing, len(request.Notes))
+	for i, note := range request.Notes {
+		notePtr := &note
+		notes[i] = *ToNoteListing(notePtr)
+	}
+
+	// Convert attachments
+	attachments := make([]Attachment, len(request.Attachments))
+	for i, attachment := range request.Attachments {
+		attachments[i] = Attachment{
+			Id:       attachment.Id,
+			Filename: attachment.Filename,
+			URL:      attachment.GetURL(),
+		}
+	}
+
+	return &RequestDetail{
+		Id:               request.Id,
+		ProgramId:        programId,
+		ProgramName:      programName,
+		EndpointId:       request.EndpointId,
+		EndpointName:     endpointName,
+		JobId:            request.ImportJobId,
+		SequenceNumber:   request.Sequence,
+		URL:              request.URL,
+		Method:           request.Method,
+		Domain:           request.Domain,
+		StatusCode:       request.ResStatus,
+		SearchResults:    []string{}, // Will be populated if search was performed
+		RequestHeaders:   request.ReqHeaders,
+		RequestBody:      requestBody,
+		ResponseBody:     responseBody,
+		ResponseHeaders:  responseHeaders,
+		ReqHash:          request.ReqHash,
+		ResponseHash:     request.ResHash,
+		ResponseBodyHash: request.ResBodyHash,
+		LatencyMs:        int(request.LatencyMs),
+		Notes:            notes,
+		Attachments:      attachments,
+	}
 }
