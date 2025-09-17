@@ -24,7 +24,7 @@ func main() {
 	secretConfig := middlewares.SecretConfig{
 		Host:        "http://localhost:" + port,
 		SecretPath:  "start-session",
-		RedirectUrl: "http://localhost:5173",
+		RedirectUrl: "http://localhost:8081/swagger",
 		SecretFunc: func() string {
 			return utils.GenerateRandomString(20)
 		},

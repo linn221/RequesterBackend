@@ -70,9 +70,10 @@ func ToNoteDetail(note *models.Note) *NoteDetail {
 
 // ===== Attachments =====
 type Attachment struct {
-	Id       int    `json:"id"`
-	Filename string `json:"filename"`
-	URL      string `json:"url"`
+	Id           int    `json:"id"`
+	Filename     string `json:"filename"`
+	OriginalName string `json:"original_filename"`
+	URL          string `json:"url"`
 }
 
 type UploadAttachmentRequest struct {
@@ -135,9 +136,10 @@ func ToProgramDetail(program *models.Program) *ProgramDetail {
 	attachments := make([]Attachment, len(program.Attachments))
 	for i, attachment := range program.Attachments {
 		attachments[i] = Attachment{
-			Id:       attachment.Id,
-			Filename: attachment.Filename,
-			URL:      attachment.GetURL(),
+			Id:           attachment.Id,
+			Filename:     attachment.Filename,
+			OriginalName: attachment.OriginalName,
+			URL:          attachment.GetURL(),
 		}
 	}
 
@@ -234,9 +236,10 @@ func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
 	attachments := make([]Attachment, len(endpoint.Attachments))
 	for i, attachment := range endpoint.Attachments {
 		attachments[i] = Attachment{
-			Id:       attachment.Id,
-			Filename: attachment.Filename,
-			URL:      attachment.GetURL(),
+			Id:           attachment.Id,
+			Filename:     attachment.Filename,
+			OriginalName: attachment.OriginalName,
+			URL:          attachment.GetURL(),
 		}
 	}
 
@@ -258,18 +261,21 @@ func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
 
 // ===== Requests =====
 type RequestList struct {
-	Id             int      `json:"id"`
-	ProgramId      int      `json:"program_id"`
-	ProgramName    string   `json:"program_name"`
-	EndpointId     int      `json:"endpoint_id"`
-	EndpointName   string   `json:"endpoint_name"`
-	JobId          int      `json:"job_id"`
-	SequenceNumber int      `json:"sequence_number"`
-	URL            string   `json:"url"`
-	Method         string   `json:"method"`
-	Domain         string   `json:"domain"`
-	StatusCode     int      `json:"status_code"`
-	SearchResults  []string `json:"search_results"`
+	Id               int      `json:"id"`
+	ProgramId        int      `json:"program_id"`
+	ProgramName      string   `json:"program_name"`
+	EndpointId       int      `json:"endpoint_id"`
+	EndpointName     string   `json:"endpoint_name"`
+	JobId            int      `json:"job_id"`
+	SequenceNumber   int      `json:"sequence_number"`
+	URL              string   `json:"url"`
+	Method           string   `json:"method"`
+	Domain           string   `json:"domain"`
+	StatusCode       int      `json:"status_code"`
+	SearchResults    []string `json:"search_results"`
+	ReqHash          string   `json:"req_hash"`
+	ResponseHash     string   `json:"response_hash"`
+	ResponseBodyHash string   `json:"response_body_hash"`
 }
 
 type RequestDetail struct {
@@ -331,18 +337,21 @@ func ToRequestList(request *models.MyRequest, searchResults []string) *RequestLi
 	}
 
 	return &RequestList{
-		Id:             request.Id,
-		ProgramId:      programId,
-		ProgramName:    programName,
-		EndpointId:     request.EndpointId,
-		EndpointName:   endpointName,
-		JobId:          request.ImportJobId,
-		SequenceNumber: request.Sequence,
-		URL:            request.URL,
-		Method:         request.Method,
-		Domain:         request.Domain,
-		StatusCode:     request.ResStatus,
-		SearchResults:  searchResults,
+		Id:               request.Id,
+		ProgramId:        programId,
+		ProgramName:      programName,
+		EndpointId:       request.EndpointId,
+		EndpointName:     endpointName,
+		JobId:            request.ImportJobId,
+		SequenceNumber:   request.Sequence,
+		URL:              request.URL,
+		Method:           request.Method,
+		Domain:           request.Domain,
+		StatusCode:       request.ResStatus,
+		SearchResults:    searchResults,
+		ReqHash:          request.ReqHash,
+		ResponseHash:     request.ResHash,
+		ResponseBodyHash: request.ResBodyHash,
 	}
 }
 
@@ -363,7 +372,14 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 
 	// Parse headers and body
 	_, _ = services.ParseRequestHeaders(request.ReqHeaders)
-	responseHeaders, _ := services.ParseResponseHeaders(request.ResHeaders)
+	var responseHeaders interface{}
+	parsedHeaders, err := services.ParseResponseHeaders(request.ResHeaders)
+	if err != nil {
+		// If parsing fails, return the raw headers as string
+		responseHeaders = request.ResHeaders
+	} else {
+		responseHeaders = parsedHeaders
+	}
 	requestBody, _ := services.ParseRequestBody(request.ReqBody)
 	responseBody, _ := services.ParseResponseBody(request.ResBody)
 
@@ -378,9 +394,10 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 	attachments := make([]Attachment, len(request.Attachments))
 	for i, attachment := range request.Attachments {
 		attachments[i] = Attachment{
-			Id:       attachment.Id,
-			Filename: attachment.Filename,
-			URL:      attachment.GetURL(),
+			Id:           attachment.Id,
+			Filename:     attachment.Filename,
+			OriginalName: attachment.OriginalName,
+			URL:          attachment.GetURL(),
 		}
 	}
 

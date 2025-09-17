@@ -1,2 +1,5 @@
-/requests/1, programId, programName zero. Import HAR file does not link the resulting requests with program_id from input form or request details handler is not loading program properly.
-/programs/1 is not loading Attachments, or CreateAttachment does not work with reference_type of programs
+GET /requests/1 is returning null response_headers. check if import har file not working or fetching the request detail.
+add original_filename field in attachments listing type in endpoint, programs, requests, etc.
+I want to add hash fieds in Request Listing DTO.
+Add url query named search in /requests (request listing api) that will do search with LIKE operation in request body/header, response body/header. Then, from the resulting results, extract the matched string (with some extra text for the context), and put them in search_results array field.
+After the updates to DTOs, also modify the openapi spec to relect the API.

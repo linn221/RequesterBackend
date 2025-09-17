@@ -444,6 +444,10 @@ paths:
           in: query
           schema: { type: integer }
           description: Filter by job ID
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Search in request/response body and headers using LIKE operation
         - name: raw_sql
           in: query
           schema: { type: string }
@@ -577,6 +581,7 @@ components:
       properties:
         id: { type: integer }
         filename: { type: string }
+        original_filename: { type: string }
         url: { type: string }
 
     program_input:
@@ -668,6 +673,9 @@ components:
         search_results:
           type: array
           items: { type: string }
+        req_hash: { type: string }
+        response_hash: { type: string }
+        response_body_hash: { type: string }
 
     request_detail:
       allOf:

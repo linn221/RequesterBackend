@@ -51,7 +51,7 @@ func (h *RequestHandler) List(w http.ResponseWriter, r *http.Request) {
 	// Check if search query is provided
 	searchQuery := r.URL.Query().Get("search")
 	if searchQuery != "" {
-		requests, searchResults, err := h.Service.SearchRequests(r.Context(), searchQuery)
+		requests, searchResultsMap, err := h.Service.SearchRequests(r.Context(), searchQuery)
 		if err != nil {
 			utils.RespondError(w, err)
 			return
@@ -59,6 +59,7 @@ func (h *RequestHandler) List(w http.ResponseWriter, r *http.Request) {
 
 		response := make([]*RequestList, len(requests))
 		for i, req := range requests {
+			searchResults := searchResultsMap[req.Id]
 			response[i] = ToRequestList(req, searchResults)
 		}
 

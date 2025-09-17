@@ -14,6 +14,64 @@ type RequestService struct {
 	DB *gorm.DB
 }
 
+// extractContextSnippet extracts a contextual snippet around the matched text
+func extractContextSnippet(text, searchQuery string, contextType string) string {
+	// Convert to lowercase for case-insensitive search
+	lowerText := strings.ToLower(text)
+	lowerQuery := strings.ToLower(searchQuery)
+
+	// Find the position of the search query
+	pos := strings.Index(lowerText, lowerQuery)
+	if pos == -1 {
+		return ""
+	}
+
+	// Split text into words
+	words := strings.Fields(text)
+
+	// Find the word position of the match
+	wordPos := 0
+	currentPos := 0
+	for i, word := range words {
+		if currentPos >= pos {
+			wordPos = i
+			break
+		}
+		currentPos += len(word) + 1 // +1 for space
+	}
+
+	// Calculate start and end positions for ~20 words with match at 7th/8th position
+	startPos := wordPos - 7
+	if startPos < 0 {
+		startPos = 0
+	}
+
+	endPos := startPos + 20
+	if endPos > len(words) {
+		endPos = len(words)
+		// Adjust start position if we're near the end
+		if endPos-startPos < 20 && startPos > 0 {
+			startPos = endPos - 20
+			if startPos < 0 {
+				startPos = 0
+			}
+		}
+	}
+
+	// Extract the snippet
+	snippet := strings.Join(words[startPos:endPos], " ")
+
+	// Add ellipsis if we're not at the beginning or end
+	if startPos > 0 {
+		snippet = "..." + snippet
+	}
+	if endPos < len(words) {
+		snippet = snippet + "..."
+	}
+
+	return contextType + ": " + snippet
+}
+
 // List retrieves requests with filtering and search
 func (s *RequestService) List(ctx context.Context, programId, endpointId, jobId *int, rawSQL, orderBy string, asc bool) ([]*models.MyRequest, error) {
 	var requests []*models.MyRequest
@@ -60,9 +118,9 @@ func (s *RequestService) Get(ctx context.Context, id int) (*models.MyRequest, er
 }
 
 // SearchRequests searches for requests based on query string
-func (s *RequestService) SearchRequests(ctx context.Context, searchQuery string) ([]*models.MyRequest, []string, error) {
+func (s *RequestService) SearchRequests(ctx context.Context, searchQuery string) ([]*models.MyRequest, map[int][]string, error) {
 	var requests []*models.MyRequest
-	var searchResults []string
+	searchResults := make(map[int][]string)
 
 	// Search in request body, response body, headers, and URL
 	query := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments")
@@ -75,31 +133,50 @@ func (s *RequestService) SearchRequests(ctx context.Context, searchQuery string)
 		return nil, nil, err
 	}
 
-	// Extract search results (matched strings)
+	// Extract search results (matched strings) for each request
 	for _, req := range requests {
+		var reqSearchResults []string
+
 		// Search in URL
 		if strings.Contains(strings.ToLower(req.URL), strings.ToLower(searchQuery)) {
-			searchResults = append(searchResults, "URL: "+req.URL)
+			snippet := extractContextSnippet(req.URL, searchQuery, "URL")
+			if snippet != "" {
+				reqSearchResults = append(reqSearchResults, snippet)
+			}
 		}
 
 		// Search in request body
 		if strings.Contains(strings.ToLower(req.ReqBody), strings.ToLower(searchQuery)) {
-			searchResults = append(searchResults, "Request Body: "+req.ReqBody)
+			snippet := extractContextSnippet(req.ReqBody, searchQuery, "Request Body")
+			if snippet != "" {
+				reqSearchResults = append(reqSearchResults, snippet)
+			}
 		}
 
 		// Search in response body
 		if strings.Contains(strings.ToLower(req.ResBody), strings.ToLower(searchQuery)) {
-			searchResults = append(searchResults, "Response Body: "+req.ResBody)
+			snippet := extractContextSnippet(req.ResBody, searchQuery, "Response Body")
+			if snippet != "" {
+				reqSearchResults = append(reqSearchResults, snippet)
+			}
 		}
 
 		// Search in headers
 		if strings.Contains(strings.ToLower(req.ReqHeaders), strings.ToLower(searchQuery)) {
-			searchResults = append(searchResults, "Request Headers: "+req.ReqHeaders)
+			snippet := extractContextSnippet(req.ReqHeaders, searchQuery, "Request Headers")
+			if snippet != "" {
+				reqSearchResults = append(reqSearchResults, snippet)
+			}
 		}
 
 		if strings.Contains(strings.ToLower(req.ResHeaders), strings.ToLower(searchQuery)) {
-			searchResults = append(searchResults, "Response Headers: "+req.ResHeaders)
+			snippet := extractContextSnippet(req.ResHeaders, searchQuery, "Response Headers")
+			if snippet != "" {
+				reqSearchResults = append(reqSearchResults, snippet)
+			}
 		}
+
+		searchResults[req.Id] = reqSearchResults
 	}
 
 	return requests, searchResults, nil
