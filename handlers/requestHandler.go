@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/linn221/RequesterBackend/models"
 	"github.com/linn221/RequesterBackend/services"
 	"github.com/linn221/RequesterBackend/utils"
 )
@@ -45,29 +46,27 @@ func (h *RequestHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rawSQL := r.URL.Query().Get("raw_sql")
-	orderBy := r.URL.Query().Get("order_by")
-	asc := r.URL.Query().Get("asc") != "false" // default to true
+
+	// Parse multi-level ordering parameters
+	orderBy1 := r.URL.Query().Get("order_by1")
+	asc1 := r.URL.Query().Get("asc1") != "false" // default to true
+	orderBy2 := r.URL.Query().Get("order_by2")
+	asc2 := r.URL.Query().Get("asc2") != "false" // default to true
+	orderBy3 := r.URL.Query().Get("order_by3")
+	asc3 := r.URL.Query().Get("asc3") != "false" // default to true
+	orderBy4 := r.URL.Query().Get("order_by4")
+	asc4 := r.URL.Query().Get("asc4") != "false" // default to true
 
 	// Check if search query is provided
 	searchQuery := r.URL.Query().Get("search")
+	var requests []*models.MyRequest
+
 	if searchQuery != "" {
-		requests, searchResultsMap, err := h.Service.SearchRequests(r.Context(), searchQuery)
-		if err != nil {
-			utils.RespondError(w, err)
-			return
-		}
-
-		response := make([]*RequestList, len(requests))
-		for i, req := range requests {
-			searchResults := searchResultsMap[req.Id]
-			response[i] = ToRequestList(req, searchResults)
-		}
-
-		utils.OkJson(w, response)
-		return
+		requests, err = h.Service.SearchRequests(r.Context(), searchQuery, orderBy1, asc1, orderBy2, asc2, orderBy3, asc3, orderBy4, asc4)
+	} else {
+		requests, err = h.Service.List(r.Context(), programId, endpointId, jobId, rawSQL, orderBy1, asc1, orderBy2, asc2, orderBy3, asc3, orderBy4, asc4)
 	}
 
-	requests, err := h.Service.List(r.Context(), programId, endpointId, jobId, rawSQL, orderBy, asc)
 	if err != nil {
 		utils.RespondError(w, err)
 		return
@@ -75,7 +74,7 @@ func (h *RequestHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	response := make([]*RequestList, len(requests))
 	for i, req := range requests {
-		response[i] = ToRequestList(req, nil)
+		response[i] = ToRequestList(req)
 	}
 
 	utils.OkJson(w, response)

@@ -14,66 +14,73 @@ type RequestService struct {
 	DB *gorm.DB
 }
 
-// extractContextSnippet extracts a contextual snippet around the matched text
-func extractContextSnippet(text, searchQuery string, contextType string) string {
-	// Convert to lowercase for case-insensitive search
-	lowerText := strings.ToLower(text)
-	lowerQuery := strings.ToLower(searchQuery)
+// buildOrderClauses builds ORDER BY clauses from multiple ordering parameters
+func (s *RequestService) buildOrderClauses(orderBy1 string, asc1 bool, orderBy2 string, asc2 bool, orderBy3 string, asc3 bool, orderBy4 string, asc4 bool) string {
+	var clauses []string
 
-	// Find the position of the search query
-	pos := strings.Index(lowerText, lowerQuery)
-	if pos == -1 {
-		return ""
-	}
-
-	// Split text into words
-	words := strings.Fields(text)
-
-	// Find the word position of the match
-	wordPos := 0
-	currentPos := 0
-	for i, word := range words {
-		if currentPos >= pos {
-			wordPos = i
-			break
-		}
-		currentPos += len(word) + 1 // +1 for space
-	}
-
-	// Calculate start and end positions for ~20 words with match at 7th/8th position
-	startPos := wordPos - 7
-	if startPos < 0 {
-		startPos = 0
-	}
-
-	endPos := startPos + 20
-	if endPos > len(words) {
-		endPos = len(words)
-		// Adjust start position if we're near the end
-		if endPos-startPos < 20 && startPos > 0 {
-			startPos = endPos - 20
-			if startPos < 0 {
-				startPos = 0
-			}
+	// Helper function to map order_by parameter to database column
+	mapToColumn := func(orderBy string) string {
+		switch orderBy {
+		case "method":
+			return "method"
+		case "content_type":
+			// content_type is not available in the current model, skip ordering
+			return ""
+		case "size":
+			return "resp_size"
+		case "latency":
+			return "latency_ms"
+		case "url":
+			return "url"
+		case "sequence_number":
+			return "sequence"
+		default:
+			// Invalid order_by parameter, skip ordering
+			return ""
 		}
 	}
 
-	// Extract the snippet
-	snippet := strings.Join(words[startPos:endPos], " ")
-
-	// Add ellipsis if we're not at the beginning or end
-	if startPos > 0 {
-		snippet = "..." + snippet
+	// Helper function to build a single order clause
+	buildClause := func(orderBy string, asc bool) string {
+		column := mapToColumn(orderBy)
+		if column == "" {
+			return ""
+		}
+		direction := "ASC"
+		if !asc {
+			direction = "DESC"
+		}
+		return fmt.Sprintf("%s %s", column, direction)
 	}
-	if endPos < len(words) {
-		snippet = snippet + "..."
+
+	// Build clauses for each level (orderBy1 has highest priority)
+	if orderBy1 != "" {
+		if clause := buildClause(orderBy1, asc1); clause != "" {
+			clauses = append(clauses, clause)
+		}
+	}
+	if orderBy2 != "" {
+		if clause := buildClause(orderBy2, asc2); clause != "" {
+			clauses = append(clauses, clause)
+		}
+	}
+	if orderBy3 != "" {
+		if clause := buildClause(orderBy3, asc3); clause != "" {
+			clauses = append(clauses, clause)
+		}
+	}
+	if orderBy4 != "" {
+		if clause := buildClause(orderBy4, asc4); clause != "" {
+			clauses = append(clauses, clause)
+		}
 	}
 
-	return contextType + ": " + snippet
+	// Join all clauses with commas
+	return strings.Join(clauses, ", ")
 }
 
 // List retrieves requests with filtering and search
-func (s *RequestService) List(ctx context.Context, programId, endpointId, jobId *int, rawSQL, orderBy string, asc bool) ([]*models.MyRequest, error) {
+func (s *RequestService) List(ctx context.Context, programId, endpointId, jobId *int, rawSQL, orderBy1 string, asc1 bool, orderBy2 string, asc2 bool, orderBy3 string, asc3 bool, orderBy4 string, asc4 bool) ([]*models.MyRequest, error) {
 	var requests []*models.MyRequest
 	query := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments")
 
@@ -93,13 +100,10 @@ func (s *RequestService) List(ctx context.Context, programId, endpointId, jobId 
 		query = query.Where(rawSQL)
 	}
 
-	// Apply ordering
-	if orderBy != "" {
-		orderDirection := "ASC"
-		if !asc {
-			orderDirection = "DESC"
-		}
-		query = query.Order(fmt.Sprintf("%s %s", orderBy, orderDirection))
+	// Apply multi-level ordering
+	orderClauses := s.buildOrderClauses(orderBy1, asc1, orderBy2, asc2, orderBy3, asc3, orderBy4, asc4)
+	if len(orderClauses) > 0 {
+		query = query.Order(orderClauses)
 	}
 
 	if err := query.Find(&requests).Error; err != nil {
@@ -118,9 +122,8 @@ func (s *RequestService) Get(ctx context.Context, id int) (*models.MyRequest, er
 }
 
 // SearchRequests searches for requests based on query string
-func (s *RequestService) SearchRequests(ctx context.Context, searchQuery string) ([]*models.MyRequest, map[int][]string, error) {
+func (s *RequestService) SearchRequests(ctx context.Context, searchQuery, orderBy1 string, asc1 bool, orderBy2 string, asc2 bool, orderBy3 string, asc3 bool, orderBy4 string, asc4 bool) ([]*models.MyRequest, error) {
 	var requests []*models.MyRequest
-	searchResults := make(map[int][]string)
 
 	// Search in request body, response body, headers, and URL
 	query := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments")
@@ -129,57 +132,17 @@ func (s *RequestService) SearchRequests(ctx context.Context, searchQuery string)
 	query = query.Where("url LIKE ? OR req_body LIKE ? OR res_body LIKE ? OR req_headers LIKE ? OR res_headers LIKE ?",
 		searchPattern, searchPattern, searchPattern, searchPattern, searchPattern)
 
+	// Apply multi-level ordering
+	orderClauses := s.buildOrderClauses(orderBy1, asc1, orderBy2, asc2, orderBy3, asc3, orderBy4, asc4)
+	if len(orderClauses) > 0 {
+		query = query.Order(orderClauses)
+	}
+
 	if err := query.Find(&requests).Error; err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	// Extract search results (matched strings) for each request
-	for _, req := range requests {
-		var reqSearchResults []string
-
-		// Search in URL
-		if strings.Contains(strings.ToLower(req.URL), strings.ToLower(searchQuery)) {
-			snippet := extractContextSnippet(req.URL, searchQuery, "URL")
-			if snippet != "" {
-				reqSearchResults = append(reqSearchResults, snippet)
-			}
-		}
-
-		// Search in request body
-		if strings.Contains(strings.ToLower(req.ReqBody), strings.ToLower(searchQuery)) {
-			snippet := extractContextSnippet(req.ReqBody, searchQuery, "Request Body")
-			if snippet != "" {
-				reqSearchResults = append(reqSearchResults, snippet)
-			}
-		}
-
-		// Search in response body
-		if strings.Contains(strings.ToLower(req.ResBody), strings.ToLower(searchQuery)) {
-			snippet := extractContextSnippet(req.ResBody, searchQuery, "Response Body")
-			if snippet != "" {
-				reqSearchResults = append(reqSearchResults, snippet)
-			}
-		}
-
-		// Search in headers
-		if strings.Contains(strings.ToLower(req.ReqHeaders), strings.ToLower(searchQuery)) {
-			snippet := extractContextSnippet(req.ReqHeaders, searchQuery, "Request Headers")
-			if snippet != "" {
-				reqSearchResults = append(reqSearchResults, snippet)
-			}
-		}
-
-		if strings.Contains(strings.ToLower(req.ResHeaders), strings.ToLower(searchQuery)) {
-			snippet := extractContextSnippet(req.ResHeaders, searchQuery, "Response Headers")
-			if snippet != "" {
-				reqSearchResults = append(reqSearchResults, snippet)
-			}
-		}
-
-		searchResults[req.Id] = reqSearchResults
-	}
-
-	return requests, searchResults, nil
+	return requests, nil
 }
 
 // ParseRequestHeaders parses JSON headers string to map

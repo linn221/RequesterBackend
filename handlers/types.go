@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
+	"strings"
+
 	"github.com/linn221/RequesterBackend/models"
 	"github.com/linn221/RequesterBackend/services"
 )
@@ -261,21 +264,22 @@ func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
 
 // ===== Requests =====
 type RequestList struct {
-	Id               int      `json:"id"`
-	ProgramId        int      `json:"program_id"`
-	ProgramName      string   `json:"program_name"`
-	EndpointId       int      `json:"endpoint_id"`
-	EndpointName     string   `json:"endpoint_name"`
-	JobId            int      `json:"job_id"`
-	SequenceNumber   int      `json:"sequence_number"`
-	URL              string   `json:"url"`
-	Method           string   `json:"method"`
-	Domain           string   `json:"domain"`
-	StatusCode       int      `json:"status_code"`
-	SearchResults    []string `json:"search_results"`
-	ReqHash          string   `json:"req_hash"`
-	ResponseHash     string   `json:"response_hash"`
-	ResponseBodyHash string   `json:"response_body_hash"`
+	Id               int    `json:"id"`
+	ProgramId        int    `json:"program_id"`
+	ProgramName      string `json:"program_name"`
+	EndpointId       int    `json:"endpoint_id"`
+	EndpointName     string `json:"endpoint_name"`
+	JobId            int    `json:"job_id"`
+	SequenceNumber   int    `json:"sequence_number"`
+	URL              string `json:"url"`
+	Method           string `json:"method"`
+	Domain           string `json:"domain"`
+	StatusCode       int    `json:"status_code"`
+	ContentType      string `json:"content_type"`
+	Size             int    `json:"size"`
+	ReqHash          string `json:"req_hash"`
+	ResponseHash     string `json:"response_hash"`
+	ResponseBodyHash string `json:"response_body_hash"`
 }
 
 type RequestDetail struct {
@@ -290,7 +294,6 @@ type RequestDetail struct {
 	Method           string        `json:"method"`
 	Domain           string        `json:"domain"`
 	StatusCode       int           `json:"status_code"`
-	SearchResults    []string      `json:"search_results"`
 	RequestHeaders   string        `json:"request_headers"`
 	RequestBody      interface{}   `json:"request_body"`
 	ResponseBody     interface{}   `json:"response_body"`
@@ -321,7 +324,32 @@ type ImportHarRequest struct {
 }
 
 // ===== Request Conversion Functions =====
-func ToRequestList(request *models.MyRequest, searchResults []string) *RequestList {
+
+// extractContentType extracts content type from response headers
+func extractContentType(responseHeaders string) string {
+	if responseHeaders == "" {
+		return ""
+	}
+
+	// Parse the JSON headers
+	var headers map[string]interface{}
+	if err := json.Unmarshal([]byte(responseHeaders), &headers); err != nil {
+		return ""
+	}
+
+	// Look for Content-Type header (case insensitive)
+	for key, value := range headers {
+		if strings.EqualFold(key, "content-type") {
+			if str, ok := value.(string); ok {
+				return str
+			}
+		}
+	}
+
+	return ""
+}
+
+func ToRequestList(request *models.MyRequest) *RequestList {
 	programName := ""
 	programId := 0
 	if request.ProgramId != nil {
@@ -348,7 +376,8 @@ func ToRequestList(request *models.MyRequest, searchResults []string) *RequestLi
 		Method:           request.Method,
 		Domain:           request.Domain,
 		StatusCode:       request.ResStatus,
-		SearchResults:    searchResults,
+		ContentType:      extractContentType(request.ResHeaders),
+		Size:             request.RespSize,
 		ReqHash:          request.ReqHash,
 		ResponseHash:     request.ResHash,
 		ResponseBodyHash: request.ResBodyHash,
@@ -373,12 +402,17 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 	// Parse headers and body
 	_, _ = services.ParseRequestHeaders(request.ReqHeaders)
 	var responseHeaders interface{}
-	parsedHeaders, err := services.ParseResponseHeaders(request.ResHeaders)
-	if err != nil {
-		// If parsing fails, return the raw headers as string
-		responseHeaders = request.ResHeaders
+	if request.ResHeaders == "" {
+		// If response headers are empty, return empty object
+		responseHeaders = map[string]interface{}{}
 	} else {
-		responseHeaders = parsedHeaders
+		parsedHeaders, err := services.ParseResponseHeaders(request.ResHeaders)
+		if err != nil {
+			// If parsing fails, return the raw headers as string
+			responseHeaders = request.ResHeaders
+		} else {
+			responseHeaders = parsedHeaders
+		}
 	}
 	requestBody, _ := services.ParseRequestBody(request.ReqBody)
 	responseBody, _ := services.ParseResponseBody(request.ResBody)
@@ -413,7 +447,6 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 		Method:           request.Method,
 		Domain:           request.Domain,
 		StatusCode:       request.ResStatus,
-		SearchResults:    []string{}, // Will be populated if search was performed
 		RequestHeaders:   request.ReqHeaders,
 		RequestBody:      requestBody,
 		ResponseBody:     responseBody,

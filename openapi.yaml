@@ -452,17 +452,50 @@ paths:
           in: query
           schema: { type: string }
           description: Custom SQL filter
-        - name: order_by
+        - name: order_by1
           in: query
           schema:
             type: string
             enum: [method, content_type, size, latency, url, sequence_number]
-            description: Field to sort by
-        - name: asc
+            description: Primary field to sort by (highest priority)
+        - name: asc1
           in: query
           schema:
             type: boolean
-            description: Ascending or descending order
+            description: Ascending or descending order for primary sort
+        - name: order_by2
+          in: query
+          schema:
+            type: string
+            enum: [method, content_type, size, latency, url, sequence_number]
+            description: Secondary field to sort by
+        - name: asc2
+          in: query
+          schema:
+            type: boolean
+            description: Ascending or descending order for secondary sort
+        - name: order_by3
+          in: query
+          schema:
+            type: string
+            enum: [method, content_type, size, latency, url, sequence_number]
+            description: Tertiary field to sort by
+        - name: asc3
+          in: query
+          schema:
+            type: boolean
+            description: Ascending or descending order for tertiary sort
+        - name: order_by4
+          in: query
+          schema:
+            type: string
+            enum: [method, content_type, size, latency, url, sequence_number]
+            description: Quaternary field to sort by
+        - name: asc4
+          in: query
+          schema:
+            type: boolean
+            description: Ascending or descending order for quaternary sort
       responses:
         "200":
           description: Array of requests
@@ -657,7 +690,6 @@ components:
 
     request_list:
       type: object
-      description: search_results returns a list of matched strings if requests search query exists
       properties:
         id: { type: integer }
         program_id: { type: integer }
@@ -670,9 +702,8 @@ components:
         method: { type: string }
         domain: { type: string }
         status_code: { type: integer }
-        search_results:
-          type: array
-          items: { type: string }
+        content_type: { type: string }
+        size: { type: integer }
         req_hash: { type: string }
         response_hash: { type: string }
         response_body_hash: { type: string }
