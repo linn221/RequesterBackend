@@ -103,7 +103,7 @@ func (s *ImportHarService) ImportHAR(ctx context.Context, file io.Reader, filena
 		endpointKeyToID[endpointKey] = endpoint.Id
 	}
 
-	// Update requests with endpoint IDs and import job ID
+	// Update requests with endpoint IDs, import job ID, and program ID
 	for i := range requests {
 		u, err := url.Parse(requests[i].URL)
 		if err != nil {
@@ -120,6 +120,7 @@ func (s *ImportHarService) ImportHAR(ctx context.Context, file io.Reader, filena
 			requests[i].EndpointId = endpointID
 		}
 		requests[i].ImportJobId = job.Id
+		requests[i].ProgramId = &programId // Set the program_id from the import form
 	}
 
 	// Save requests in batches

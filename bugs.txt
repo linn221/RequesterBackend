@@ -1,5 +1,4 @@
-GET /requests/1 is returning null response_headers. check if import har file not working or fetching the request detail.
-add original_filename field in attachments listing type in endpoint, programs, requests, etc.
-I want to add hash fieds in Request Listing DTO.
-Add url query named search in /requests (request listing api) that will do search with LIKE operation in request body/header, response body/header. Then, from the resulting results, extract the matched string (with some extra text for the context), and put them in search_results array field.
-After the updates to DTOs, also modify the openapi spec to relect the API.
+do not limit Attachment file upload size.
+on Import HAR file, the resulting requests do not have program_id of import form. fix it.
+Add a Text field on Listing Request response DTO, make the field by concatenating all information like Response body, response headers, request body, request headers, Notes, etc. Update the spec as well
+Do the same to listing endpoint response DTO, Adding a Text field, by concatenating all infromation of endpoint

@@ -672,6 +672,7 @@ components:
         endpoint_type: { type: string }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+        text: { type: string, description: "Concatenated text containing all endpoint information including notes and attachments" }
 
     endpoint_detail:
       allOf:
@@ -707,6 +708,7 @@ components:
         req_hash: { type: string }
         response_hash: { type: string }
         response_body_hash: { type: string }
+        text: { type: string, description: "Concatenated text containing all request information including headers, body, notes and attachments" }
 
     request_detail:
       allOf:

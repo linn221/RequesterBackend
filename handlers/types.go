@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/linn221/RequesterBackend/models"
@@ -189,6 +190,7 @@ type EndpointList struct {
 	EndpointType string `json:"endpoint_type"`
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`
+	Text         string `json:"text"`
 }
 
 func ToEndpointList(endpoint *models.Endpoint) *EndpointList {
@@ -196,6 +198,37 @@ func ToEndpointList(endpoint *models.Endpoint) *EndpointList {
 	if endpoint.Program != nil {
 		programName = endpoint.Program.Name
 	}
+
+	// Concatenate all information into text field
+	text := fmt.Sprintf("ID: %d\nProgram ID: %d\nProgram Name: %s\nDomain: %s\nURI: %s\nMethod: %s\nEndpoint Type: %s\nDescription: %s\nCreated At: %s\nUpdated At: %s",
+		endpoint.Id,
+		endpoint.ProgramId,
+		programName,
+		endpoint.Domain,
+		endpoint.URI,
+		endpoint.Method,
+		string(endpoint.EndpointType),
+		endpoint.Note,
+		endpoint.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		endpoint.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	)
+
+	// Add notes to text
+	if len(endpoint.Notes) > 0 {
+		text += "\nNotes:\n"
+		for _, note := range endpoint.Notes {
+			text += fmt.Sprintf("- %s\n", note.Value)
+		}
+	}
+
+	// Add attachments to text
+	if len(endpoint.Attachments) > 0 {
+		text += "\nAttachments:\n"
+		for _, attachment := range endpoint.Attachments {
+			text += fmt.Sprintf("- %s (%s)\n", attachment.OriginalName, attachment.Filename)
+		}
+	}
+
 	return &EndpointList{
 		Id:           endpoint.Id,
 		ProgramId:    endpoint.ProgramId,
@@ -206,6 +239,7 @@ func ToEndpointList(endpoint *models.Endpoint) *EndpointList {
 		EndpointType: string(endpoint.EndpointType),
 		CreatedAt:    endpoint.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:    endpoint.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Text:         text,
 	}
 }
 
@@ -280,6 +314,7 @@ type RequestList struct {
 	ReqHash          string `json:"req_hash"`
 	ResponseHash     string `json:"response_hash"`
 	ResponseBodyHash string `json:"response_body_hash"`
+	Text             string `json:"text"`
 }
 
 type RequestDetail struct {
@@ -364,6 +399,62 @@ func ToRequestList(request *models.MyRequest) *RequestList {
 		endpointName = request.Endpoint.URI
 	}
 
+	// Parse headers and body for text concatenation
+	_, _ = services.ParseRequestHeaders(request.ReqHeaders)
+	var responseHeaders interface{}
+	if request.ResHeaders == "" {
+		responseHeaders = map[string]interface{}{}
+	} else {
+		parsedHeaders, err := services.ParseResponseHeaders(request.ResHeaders)
+		if err != nil {
+			responseHeaders = request.ResHeaders
+		} else {
+			responseHeaders = parsedHeaders
+		}
+	}
+	requestBody, _ := services.ParseRequestBody(request.ReqBody)
+	responseBody, _ := services.ParseResponseBody(request.ResBody)
+
+	// Concatenate all information into text field
+	text := fmt.Sprintf("ID: %d\nProgram ID: %d\nProgram Name: %s\nEndpoint ID: %d\nEndpoint Name: %s\nJob ID: %d\nSequence Number: %d\nURL: %s\nMethod: %s\nDomain: %s\nStatus Code: %d\nContent Type: %s\nSize: %d\nRequest Headers: %s\nRequest Body: %v\nResponse Headers: %v\nResponse Body: %v\nRequest Hash: %s\nResponse Hash: %s\nResponse Body Hash: %s",
+		request.Id,
+		programId,
+		programName,
+		request.EndpointId,
+		endpointName,
+		request.ImportJobId,
+		request.Sequence,
+		request.URL,
+		request.Method,
+		request.Domain,
+		request.ResStatus,
+		extractContentType(request.ResHeaders),
+		request.RespSize,
+		request.ReqHeaders,
+		requestBody,
+		responseHeaders,
+		responseBody,
+		request.ReqHash,
+		request.ResHash,
+		request.ResBodyHash,
+	)
+
+	// Add notes to text
+	if len(request.Notes) > 0 {
+		text += "\nNotes:\n"
+		for _, note := range request.Notes {
+			text += fmt.Sprintf("- %s\n", note.Value)
+		}
+	}
+
+	// Add attachments to text
+	if len(request.Attachments) > 0 {
+		text += "\nAttachments:\n"
+		for _, attachment := range request.Attachments {
+			text += fmt.Sprintf("- %s (%s)\n", attachment.OriginalName, attachment.Filename)
+		}
+	}
+
 	return &RequestList{
 		Id:               request.Id,
 		ProgramId:        programId,
@@ -381,6 +472,7 @@ func ToRequestList(request *models.MyRequest) *RequestList {
 		ReqHash:          request.ReqHash,
 		ResponseHash:     request.ResHash,
 		ResponseBodyHash: request.ResBodyHash,
+		Text:             text,
 	}
 }
 

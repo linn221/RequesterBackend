@@ -25,10 +25,7 @@ type AttachmentService struct {
 
 // UploadAttachment handles file upload and creates attachment record
 func (s *AttachmentService) UploadAttachment(file *multipart.FileHeader, referenceType string, referenceId int) (*models.Attachment, error) {
-	// Validate file size
-	if file.Size > s.MaxFileSize {
-		return nil, fmt.Errorf("file size exceeds maximum allowed size of %d bytes", s.MaxFileSize)
-	}
+	// File size validation removed - no limit on attachment file upload size
 
 	// Validate file type
 	if !s.isAllowedType(file.Header.Get("Content-Type")) {
