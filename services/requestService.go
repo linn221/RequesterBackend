@@ -24,7 +24,8 @@ func (s *RequestService) buildOrderClauses(orderBy1 string, asc1 bool, orderBy2 
 		case "method":
 			return "method"
 		case "content_type":
-			// content_type is not available in the current model, skip ordering
+			// content_type is extracted from response headers, we'll need to handle this differently
+			// For now, skip ordering by content_type as it requires a more complex query
 			return ""
 		case "size":
 			return "resp_size"

@@ -90,9 +90,9 @@ type UploadAttachmentRequest struct {
 type ProgramInput struct {
 	Name    string `json:"name" validate:"required"`
 	URL     string `json:"url" validate:"required,url"`
-	Scope   string `json:"scope" validate:"required"`
-	Domains string `json:"domains" validate:"required"`
-	Note    string `json:"note" validate:"required"`
+	Scope   string `json:"scope"`
+	Domains string `json:"domains"`
+	Note    string `json:"note"`
 }
 
 func (input *ProgramInput) ToModel() *models.Program {
@@ -344,7 +344,7 @@ type RequestDetail struct {
 // ===== Jobs =====
 type Job struct {
 	Id          int    `json:"id"`
-	JobType     string `json:"job_type" validate:"oneof=import_har import_xml"`
+	JobType     string `json:"job_type" validate:"oneof=import_har import_burp_xml"`
 	Title       string `json:"title"`
 	Progress    int    `json:"progress" validate:"min=1,max=100"`
 	CreatedAt   string `json:"created_at"`

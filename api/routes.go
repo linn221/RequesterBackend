@@ -97,6 +97,15 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 	}
 	mux.HandleFunc("POST /import_har", importHarHandler.ImportHAR)
 
+	// Import Burp XML
+	importBurpService := services.ImportBurpService{
+		DB: app.DB,
+	}
+	importBurpHandler := handlers.ImportBurpHandler{
+		Service: &importBurpService,
+	}
+	mux.HandleFunc("POST /import_burp_xml", importBurpHandler.ImportBurpXML)
+
 	// Jobs
 	jobHandler := handlers.JobHandler{
 		Service: &importHarService,
