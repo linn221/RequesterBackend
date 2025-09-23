@@ -43,7 +43,7 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 		UploadDirectory: uploadDir,
 		MaxFileSize:     parseMaxFileSize(maxFileSize),
 		AllowedTypes:    allowedTypes,
-		ValidTypes:      []string{"programs", "endpoints", "requests"},
+		ValidTypes:      []string{"programs", "endpoints", "requests", "vulns"},
 	}
 	attachmentHandler := handlers.AttachmentHandler{
 		AttachmentService: &attachmentService,
@@ -51,6 +51,34 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /attachments", attachmentHandler.UploadAttachment)
 	mux.HandleFunc("DELETE /attachments", attachmentHandler.DeleteAttachment)
 	mux.HandleFunc("GET /attachments/{id}", attachmentHandler.GetAttachment)
+
+	// Images
+	imageService := services.ImageService{
+		DB:              app.DB,
+		UploadDirectory: uploadDir,
+		ValidTypes:      []string{"programs", "endpoints", "requests", "vulns"},
+	}
+	imageHandler := handlers.ImageHandler{
+		ImageService: &imageService,
+	}
+	mux.HandleFunc("POST /images", imageHandler.UploadImages)
+	mux.HandleFunc("DELETE /images", imageHandler.DeleteImage)
+	mux.HandleFunc("GET /images/{id}", imageHandler.GetImage)
+	mux.HandleFunc("GET /images/file/{filename}", imageHandler.ServeImage)
+
+	// Vulnerabilities
+	vulnService := services.VulnService{
+		DB: app.DB,
+	}
+	vulnHandler := handlers.VulnHandler{
+		Service: &vulnService,
+	}
+	mux.HandleFunc("POST /vulns", vulnHandler.Create)
+	mux.HandleFunc("GET /vulns", vulnHandler.List)
+	mux.HandleFunc("GET /vulns/{id}", vulnHandler.Get)
+	mux.HandleFunc("GET /vulns/slug/{slug}", vulnHandler.GetBySlug)
+	mux.HandleFunc("PUT /vulns/{id}", vulnHandler.Update)
+	mux.HandleFunc("DELETE /vulns/{id}", vulnHandler.Delete)
 
 	// Programs
 	programService := services.ProgramService{

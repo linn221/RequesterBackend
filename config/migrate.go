@@ -12,7 +12,9 @@ func migrate(db *gorm.DB) {
 		&models.ImportJob{},  // No dependencies
 		&models.Endpoint{},   // Depends on Program
 		&models.MyRequest{},  // Depends on Program, ImportJob, Endpoint
+		&models.Vuln{},       // Self-referencing, no external dependencies
 		&models.Attachment{}, // Polymorphic - depends on all above
+		&models.Image{},      // Polymorphic - depends on all above
 		&models.Note{},       // Polymorphic - depends on all above
 	)
 	if err != nil {

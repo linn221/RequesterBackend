@@ -21,4 +21,5 @@ type Program struct {
 	// Polymorphic relationships
 	Attachments []Attachment `gorm:"polymorphic:Reference;polymorphicValue:programs"`
 	Notes       []Note       `gorm:"polymorphic:Reference;polymorphicValue:programs"`
+	Images      []Image      `gorm:"polymorphic:Reference;polymorphicValue:programs"`
 }

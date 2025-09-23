@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"path/filepath"
 	"strconv"
@@ -165,29 +166,7 @@ func (s *ImportBurpService) ImportBurpXML(ctx context.Context, file io.Reader, f
 			requestURL = fmt.Sprintf("%s://%s%s%s", scheme, item.Host, port, uri)
 		}
 
-		// Parse headers
-		var headers []models.Header
-		bodyStart := 0
-		for i, line := range requestLines[1:] {
-			if line == "" {
-				bodyStart = i + 2
-				break
-			}
-			if strings.Contains(line, ":") {
-				headerParts := strings.SplitN(line, ":", 2)
-				if len(headerParts) == 2 {
-					headers = append(headers, models.Header{
-						Name:  strings.TrimSpace(headerParts[0]),
-						Value: strings.TrimSpace(headerParts[1]),
-					})
-				}
-			}
-		}
-
-		// Extract body (not used in endpoint creation, but needed for parsing)
-		if bodyStart < len(requestLines) {
-			_ = strings.Join(requestLines[bodyStart:], "\n")
-		}
+		// Skip detailed parsing for endpoint creation - we only need URL info
 
 		// Parse URL to get domain and path
 		parsedURL, err := url.Parse(requestURL)
@@ -196,6 +175,26 @@ func (s *ImportBurpService) ImportBurpXML(ctx context.Context, file io.Reader, f
 		}
 
 		domain := parsedURL.Hostname() // Use Hostname() to get just the domain without port
+
+		// Validate that domain is set - this is critical
+		if domain == "" {
+			// Try to extract domain from host field as fallback
+			if item.Host != "" {
+				domain = item.Host
+				// Remove port if present
+				if colonIndex := strings.Index(domain, ":"); colonIndex != -1 {
+					domain = domain[:colonIndex]
+				}
+				log.Printf("Burp Import: Extracted domain '%s' from host field '%s' as fallback", domain, item.Host)
+			} else {
+				// Skip items without valid domain
+				log.Printf("Burp Import: Skipping item with invalid URL '%s' - cannot extract domain", requestURL)
+				continue
+			}
+		} else {
+			log.Printf("Burp Import: Using domain '%s' for URL '%s'", domain, requestURL)
+		}
+
 		path := parsedURL.Path
 		if path == "" {
 			path = "/"
@@ -322,6 +321,26 @@ func (s *ImportBurpService) ImportBurpXML(ctx context.Context, file io.Reader, f
 		}
 
 		domain := parsedURL.Hostname() // Use Hostname() instead of Host to get just the domain
+
+		// Validate that domain is set - this is critical
+		if domain == "" {
+			// Try to extract domain from host field as fallback
+			if item.Host != "" {
+				domain = item.Host
+				// Remove port if present
+				if colonIndex := strings.Index(domain, ":"); colonIndex != -1 {
+					domain = domain[:colonIndex]
+				}
+				log.Printf("Burp Import: Extracted domain '%s' from host field '%s' as fallback for request", domain, item.Host)
+			} else {
+				// Skip items without valid domain
+				log.Printf("Burp Import: Skipping request with invalid URL '%s' - cannot extract domain", requestURL)
+				continue
+			}
+		} else {
+			log.Printf("Burp Import: Using domain '%s' for request URL '%s'", domain, requestURL)
+		}
+
 		path := parsedURL.Path
 		if path == "" {
 			path = "/"

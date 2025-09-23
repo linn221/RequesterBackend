@@ -172,6 +172,19 @@ type MyRequest struct {
 - `GET /attachments/{id}` - Get attachment details
 - `DELETE /attachments` - Delete an attachment
 
+### Images
+- `POST /images` - Upload multiple images
+- `GET /images/{id}` - Get image details
+- `DELETE /images` - Delete an image
+
+### Vulnerabilities
+- `POST /vulns` - Create a vulnerability
+- `GET /vulns` - List vulnerabilities
+- `GET /vulns/{id}` - Get vulnerability details
+- `GET /vulns/slug/{slug}` - Get vulnerability by slug
+- `PUT /vulns/{id}` - Update a vulnerability
+- `DELETE /vulns/{id}` - Delete a vulnerability
+
 ### Import & Jobs
 - `POST /import_har` - Import HAR file
 - `GET /jobs` - List all jobs

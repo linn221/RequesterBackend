@@ -47,6 +47,12 @@ func (h *RequestHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	rawSQL := r.URL.Query().Get("raw_sql")
 
+	// Parse new filter parameters
+	domain := r.URL.Query().Get("domain")
+	urlContains := r.URL.Query().Get("url_contains")
+	urlMatch := r.URL.Query().Get("url_match")
+	includeSubdomains := r.URL.Query().Get("includeSubdomains") == "1"
+
 	// Parse multi-level ordering parameters
 	orderBy1 := r.URL.Query().Get("order_by1")
 	asc1 := r.URL.Query().Get("asc1") != "false" // default to true
@@ -62,9 +68,9 @@ func (h *RequestHandler) List(w http.ResponseWriter, r *http.Request) {
 	var requests []*models.MyRequest
 
 	if searchQuery != "" {
-		requests, err = h.Service.SearchRequests(r.Context(), searchQuery, orderBy1, asc1, orderBy2, asc2, orderBy3, asc3, orderBy4, asc4)
+		requests, err = h.Service.SearchRequests(r.Context(), searchQuery, domain, urlContains, urlMatch, includeSubdomains, orderBy1, asc1, orderBy2, asc2, orderBy3, asc3, orderBy4, asc4)
 	} else {
-		requests, err = h.Service.List(r.Context(), programId, endpointId, jobId, rawSQL, orderBy1, asc1, orderBy2, asc2, orderBy3, asc3, orderBy4, asc4)
+		requests, err = h.Service.List(r.Context(), programId, endpointId, jobId, rawSQL, domain, urlContains, urlMatch, includeSubdomains, orderBy1, asc1, orderBy2, asc2, orderBy3, asc3, orderBy4, asc4)
 	}
 
 	if err != nil {

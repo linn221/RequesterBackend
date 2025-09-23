@@ -43,6 +43,7 @@ type MyRequest struct {
 	// Polymorphic relationships
 	Attachments []Attachment `gorm:"polymorphic:Reference;polymorphicValue:requests"`
 	Notes       []Note       `gorm:"polymorphic:Reference;polymorphicValue:requests"`
+	Images      []Image      `gorm:"polymorphic:Reference;polymorphicValue:requests"`
 }
 
 // Temporary struct for parsing HAR files (with HeaderSlice fields)

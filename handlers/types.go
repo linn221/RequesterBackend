@@ -11,7 +11,7 @@ import (
 
 // ===== Notes =====
 type CreateNoteRequest struct {
-	ReferenceType string `json:"reference_type" validate:"required,oneof=programs endpoints requests"`
+	ReferenceType string `json:"reference_type" validate:"required,oneof=programs endpoints requests vulns"`
 	ReferenceId   int    `json:"reference_id" validate:"required"`
 	Value         string `json:"value" validate:"required"`
 }
@@ -81,9 +81,117 @@ type Attachment struct {
 }
 
 type UploadAttachmentRequest struct {
-	ReferenceType string `json:"reference_type" validate:"required,oneof=programs endpoints requests"`
+	ReferenceType string `json:"reference_type" validate:"required,oneof=programs endpoints requests vulns"`
 	ReferenceId   int    `json:"reference_id" validate:"required"`
 	// file is handled separately as multipart
+}
+
+// ===== Images =====
+type Image struct {
+	Id           int    `json:"id"`
+	Filename     string `json:"filename"`
+	OriginalName string `json:"original_filename"`
+	URL          string `json:"url"`
+}
+
+type UploadImageRequest struct {
+	ReferenceType string `json:"reference_type" validate:"required,oneof=programs endpoints requests vulns"`
+	ReferenceId   int    `json:"reference_id" validate:"required"`
+	// files are handled separately as multipart
+}
+
+// ===== Vulnerabilities =====
+type VulnInput struct {
+	Title    string `json:"title" validate:"required"`
+	Body     string `json:"body" validate:"required"`
+	ParentId *int   `json:"parent_id"`
+}
+
+func (input *VulnInput) ToModel() *models.Vuln {
+	return &models.Vuln{
+		Title:    input.Title,
+		Body:     input.Body,
+		ParentId: input.ParentId,
+	}
+}
+
+type VulnList struct {
+	Id       int    `json:"id"`
+	Title    string `json:"title"`
+	Slug     string `json:"slug"`
+	ParentId *int   `json:"parent_id"`
+}
+
+func ToVulnList(vuln *models.Vuln) *VulnList {
+	return &VulnList{
+		Id:       vuln.Id,
+		Title:    vuln.Title,
+		Slug:     vuln.Slug,
+		ParentId: vuln.ParentId,
+	}
+}
+
+type VulnDetail struct {
+	Id          int           `json:"id"`
+	Title       string        `json:"title"`
+	Body        string        `json:"body"`
+	Slug        string        `json:"slug"`
+	ParentId    *int          `json:"parent_id"`
+	ParentVuln  *string       `json:"parent_vuln"`
+	CreatedAt   string        `json:"created_at"`
+	UpdatedAt   string        `json:"updated_at"`
+	Notes       []NoteListing `json:"notes"`
+	Attachments []Attachment  `json:"attachments"`
+	Images      []Image       `json:"images"`
+}
+
+func ToVulnDetail(vuln *models.Vuln) *VulnDetail {
+	var parentVuln *string
+	if vuln.Parent != nil {
+		parentVuln = &vuln.Parent.Title
+	}
+
+	// Convert notes to NoteListing
+	notes := make([]NoteListing, len(vuln.Notes))
+	for i, note := range vuln.Notes {
+		notes[i] = *ToNoteListing(&note)
+	}
+
+	// Convert attachments to Attachment
+	attachments := make([]Attachment, len(vuln.Attachments))
+	for i, attachment := range vuln.Attachments {
+		attachments[i] = Attachment{
+			Id:           attachment.Id,
+			Filename:     attachment.Filename,
+			OriginalName: attachment.OriginalName,
+			URL:          attachment.GetURL(),
+		}
+	}
+
+	// Convert images to Image
+	images := make([]Image, len(vuln.Images))
+	for i, image := range vuln.Images {
+		images[i] = Image{
+			Id:           image.Id,
+			Filename:     image.Filename,
+			OriginalName: image.OriginalName,
+			URL:          image.GetURL(),
+		}
+	}
+
+	return &VulnDetail{
+		Id:          vuln.Id,
+		Title:       vuln.Title,
+		Body:        vuln.Body,
+		Slug:        vuln.Slug,
+		ParentId:    vuln.ParentId,
+		ParentVuln:  parentVuln,
+		CreatedAt:   vuln.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:   vuln.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Notes:       notes,
+		Attachments: attachments,
+		Images:      images,
+	}
 }
 
 // ===== Programs =====
@@ -128,6 +236,7 @@ type ProgramDetail struct {
 	Note        string        `json:"note"`
 	Notes       []NoteListing `json:"notes"`
 	Attachments []Attachment  `json:"attachments"`
+	Images      []Image       `json:"images"`
 }
 
 func ToProgramDetail(program *models.Program) *ProgramDetail {
@@ -147,6 +256,16 @@ func ToProgramDetail(program *models.Program) *ProgramDetail {
 		}
 	}
 
+	images := make([]Image, len(program.Images))
+	for i, image := range program.Images {
+		images[i] = Image{
+			Id:           image.Id,
+			Filename:     image.Filename,
+			OriginalName: image.OriginalName,
+			URL:          image.GetURL(),
+		}
+	}
+
 	return &ProgramDetail{
 		Id:          program.Id,
 		Name:        program.Name,
@@ -156,6 +275,7 @@ func ToProgramDetail(program *models.Program) *ProgramDetail {
 		Note:        program.Note,
 		Notes:       notes,
 		Attachments: attachments,
+		Images:      images,
 	}
 }
 
@@ -256,6 +376,7 @@ type EndpointDetail struct {
 	UpdatedAt    string        `json:"updated_at"`
 	Notes        []NoteListing `json:"notes"`
 	Attachments  []Attachment  `json:"attachments"`
+	Images       []Image       `json:"images"`
 }
 
 func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
@@ -280,6 +401,16 @@ func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
 		}
 	}
 
+	images := make([]Image, len(endpoint.Images))
+	for i, image := range endpoint.Images {
+		images[i] = Image{
+			Id:           image.Id,
+			Filename:     image.Filename,
+			OriginalName: image.OriginalName,
+			URL:          image.GetURL(),
+		}
+	}
+
 	return &EndpointDetail{
 		Id:           endpoint.Id,
 		ProgramId:    endpoint.ProgramId,
@@ -293,6 +424,7 @@ func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
 		UpdatedAt:    endpoint.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		Notes:        notes,
 		Attachments:  attachments,
+		Images:       images,
 	}
 }
 
@@ -339,6 +471,7 @@ type RequestDetail struct {
 	LatencyMs        int           `json:"latency_ms"`
 	Notes            []NoteListing `json:"notes"`
 	Attachments      []Attachment  `json:"attachments"`
+	Images           []Image       `json:"images"`
 }
 
 // ===== Jobs =====
@@ -369,6 +502,14 @@ func extractContentType(responseHeaders string) string {
 	// Parse the JSON headers
 	var headers map[string]interface{}
 	if err := json.Unmarshal([]byte(responseHeaders), &headers); err != nil {
+		// If JSON parsing fails, try to parse as HeaderSlice
+		if headerSlice, err := models.HeaderSliceFromJSON(responseHeaders); err == nil {
+			for _, header := range headerSlice {
+				if strings.EqualFold(header.Name, "content-type") {
+					return header.Value
+				}
+			}
+		}
 		return ""
 	}
 
@@ -527,6 +668,17 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 		}
 	}
 
+	// Convert images
+	images := make([]Image, len(request.Images))
+	for i, image := range request.Images {
+		images[i] = Image{
+			Id:           image.Id,
+			Filename:     image.Filename,
+			OriginalName: image.OriginalName,
+			URL:          image.GetURL(),
+		}
+	}
+
 	return &RequestDetail{
 		Id:               request.Id,
 		ProgramId:        programId,
@@ -549,5 +701,6 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 		LatencyMs:        int(request.LatencyMs),
 		Notes:            notes,
 		Attachments:      attachments,
+		Images:           images,
 	}
 }

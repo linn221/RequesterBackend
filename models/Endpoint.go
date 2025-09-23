@@ -32,4 +32,5 @@ type Endpoint struct {
 	// Polymorphic relationships
 	Attachments []Attachment `gorm:"polymorphic:Reference;polymorphicValue:endpoints"`
 	Notes       []Note       `gorm:"polymorphic:Reference;polymorphicValue:endpoints"`
+	Images      []Image      `gorm:"polymorphic:Reference;polymorphicValue:endpoints"`
 }

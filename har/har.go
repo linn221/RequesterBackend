@@ -3,6 +3,7 @@ package har
 import (
 	"encoding/json"
 	"net/url"
+	"strings"
 
 	"github.com/linn221/RequesterBackend/models"
 	"github.com/linn221/RequesterBackend/utils"
@@ -61,8 +62,33 @@ func ParseHAR(bs []byte, resHashFunc func(*models.MyRequest) (string, string)) (
 
 		u, err := url.Parse(entry.Request.URL)
 		domain := ""
-		if err == nil {
+		if err == nil && u.Hostname() != "" {
 			domain = u.Hostname()
+		} else {
+			// Fallback: try to extract domain from URL string if parsing fails
+			if err != nil {
+				// If URL parsing fails, try to extract domain manually
+				urlStr := entry.Request.URL
+				if strings.HasPrefix(urlStr, "http://") || strings.HasPrefix(urlStr, "https://") {
+					parts := strings.Split(urlStr[8:], "/") // Skip "https://" (8 chars)
+					if len(parts) > 0 {
+						domain = parts[0]
+						// Remove port if present
+						if colonIndex := strings.Index(domain, ":"); colonIndex != -1 {
+							domain = domain[:colonIndex]
+						}
+					}
+				} else if strings.HasPrefix(urlStr, "http://") {
+					parts := strings.Split(urlStr[7:], "/") // Skip "http://" (7 chars)
+					if len(parts) > 0 {
+						domain = parts[0]
+						// Remove port if present
+						if colonIndex := strings.Index(domain, ":"); colonIndex != -1 {
+							domain = domain[:colonIndex]
+						}
+					}
+				}
+			}
 		}
 
 		resBody := entry.Response.Content.Text

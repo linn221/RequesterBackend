@@ -81,7 +81,7 @@ func (s *RequestService) buildOrderClauses(orderBy1 string, asc1 bool, orderBy2 
 }
 
 // List retrieves requests with filtering and search
-func (s *RequestService) List(ctx context.Context, programId, endpointId, jobId *int, rawSQL, orderBy1 string, asc1 bool, orderBy2 string, asc2 bool, orderBy3 string, asc3 bool, orderBy4 string, asc4 bool) ([]*models.MyRequest, error) {
+func (s *RequestService) List(ctx context.Context, programId, endpointId, jobId *int, rawSQL, domain, urlContains, urlMatch string, includeSubdomains bool, orderBy1 string, asc1 bool, orderBy2 string, asc2 bool, orderBy3 string, asc3 bool, orderBy4 string, asc4 bool) ([]*models.MyRequest, error) {
 	var requests []*models.MyRequest
 	query := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments")
 
@@ -94,6 +94,27 @@ func (s *RequestService) List(ctx context.Context, programId, endpointId, jobId 
 	}
 	if jobId != nil {
 		query = query.Where("import_job_id = ?", *jobId)
+	}
+
+	// Apply domain filter
+	if domain != "" {
+		if includeSubdomains {
+			// Include subdomains: match domain or any subdomain
+			query = query.Where("domain = ? OR domain LIKE ?", domain, "%."+domain)
+		} else {
+			// Exact domain match only
+			query = query.Where("domain = ?", domain)
+		}
+	}
+
+	// Apply URL contains filter
+	if urlContains != "" {
+		query = query.Where("url LIKE ?", "%"+urlContains+"%")
+	}
+
+	// Apply URL match filter (exact match)
+	if urlMatch != "" {
+		query = query.Where("url = ?", urlMatch)
 	}
 
 	// Apply raw SQL filter if provided
@@ -123,7 +144,7 @@ func (s *RequestService) Get(ctx context.Context, id int) (*models.MyRequest, er
 }
 
 // SearchRequests searches for requests based on query string
-func (s *RequestService) SearchRequests(ctx context.Context, searchQuery, orderBy1 string, asc1 bool, orderBy2 string, asc2 bool, orderBy3 string, asc3 bool, orderBy4 string, asc4 bool) ([]*models.MyRequest, error) {
+func (s *RequestService) SearchRequests(ctx context.Context, searchQuery, domain, urlContains, urlMatch string, includeSubdomains bool, orderBy1 string, asc1 bool, orderBy2 string, asc2 bool, orderBy3 string, asc3 bool, orderBy4 string, asc4 bool) ([]*models.MyRequest, error) {
 	var requests []*models.MyRequest
 
 	// Search in request body, response body, headers, and URL
@@ -132,6 +153,27 @@ func (s *RequestService) SearchRequests(ctx context.Context, searchQuery, orderB
 	searchPattern := "%" + searchQuery + "%"
 	query = query.Where("url LIKE ? OR req_body LIKE ? OR res_body LIKE ? OR req_headers LIKE ? OR res_headers LIKE ?",
 		searchPattern, searchPattern, searchPattern, searchPattern, searchPattern)
+
+	// Apply domain filter
+	if domain != "" {
+		if includeSubdomains {
+			// Include subdomains: match domain or any subdomain
+			query = query.Where("domain = ? OR domain LIKE ?", domain, "%."+domain)
+		} else {
+			// Exact domain match only
+			query = query.Where("domain = ?", domain)
+		}
+	}
+
+	// Apply URL contains filter
+	if urlContains != "" {
+		query = query.Where("url LIKE ?", "%"+urlContains+"%")
+	}
+
+	// Apply URL match filter (exact match)
+	if urlMatch != "" {
+		query = query.Where("url = ?", urlMatch)
+	}
 
 	// Apply multi-level ordering
 	orderClauses := s.buildOrderClauses(orderBy1, asc1, orderBy2, asc2, orderBy3, asc3, orderBy4, asc4)

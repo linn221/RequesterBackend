@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"path/filepath"
 
@@ -57,6 +58,22 @@ func (s *ImportHarService) ImportHAR(ctx context.Context, file io.Reader, filena
 	var endpoints []*models.Endpoint
 
 	for _, req := range requests {
+		// Validate that domain is set - this is critical
+		if req.Domain == "" {
+			// Try to extract domain from URL as fallback
+			u, err := url.Parse(req.URL)
+			if err == nil && u.Hostname() != "" {
+				req.Domain = u.Hostname()
+				log.Printf("HAR Import: Extracted domain '%s' from URL '%s' as fallback", req.Domain, req.URL)
+			} else {
+				// Skip requests without valid domain
+				log.Printf("HAR Import: Skipping request with invalid URL '%s' - cannot extract domain", req.URL)
+				continue
+			}
+		} else {
+			log.Printf("HAR Import: Using domain '%s' for URL '%s'", req.Domain, req.URL)
+		}
+
 		// Create endpoint key (domain + method + path)
 		u, err := url.Parse(req.URL)
 		if err != nil {

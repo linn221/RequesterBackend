@@ -57,7 +57,7 @@ paths:
               properties:
                 reference_type:
                   type: string
-                  enum: [programs, endpoints, requests]
+                  enum: [programs, endpoints, requests, vulns]
                   description: Type of resource the note is associated with
                   example: "programs"
                 reference_id:
@@ -93,7 +93,7 @@ paths:
           description: Filter notes by reference type
           schema:
             type: string
-            enum: [endpoints, requests, programs]
+            enum: [endpoints, requests, programs, vulns]
             example: "endpoints"
         - name: reference_id
           in: query
@@ -209,7 +209,7 @@ paths:
               properties:
                 reference_type:
                   type: string
-                  enum: [programs, endpoints, requests]
+                  enum: [programs, endpoints, requests, vulns]
                   description: Type of resource the attachment is associated with
                   example: "endpoints"
                 reference_id:
@@ -257,6 +257,259 @@ paths:
               schema:
                 type: string
                 example: "attachment not found"
+
+# === Images ===
+  /images:
+    post:
+      summary: Upload images
+      description: Upload multiple image files linked to a program, endpoint, or request
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [reference_type, reference_id, files]
+              properties:
+                reference_type:
+                  type: string
+                  enum: [programs, endpoints, requests, vulns]
+                  description: Type of resource the images are associated with
+                  example: "endpoints"
+                reference_id:
+                  type: integer
+                  description: ID of the referenced resource
+                  example: 123
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Image files to upload (multiple files supported)
+      responses:
+        "201":
+          description: Images created successfully (returns array of image objects)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/image"
+        "400":
+          description: Invalid input
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "invalid file"
+
+    delete:
+      summary: Delete an image
+      description: Deletes an image by ID
+      parameters:
+        - name: id
+          in: query
+          description: ID of the image to delete
+          required: true
+          schema:
+            type: integer
+            example: 555
+      responses:
+        "204":
+          description: Image deleted successfully
+        "404":
+          description: Image not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "image not found"
+
+  /images/{id}:
+    get:
+      summary: Get image details
+      description: Get image metadata by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Image ID
+          schema:
+            type: integer
+            example: 555
+      responses:
+        "200":
+          description: Image details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/image"
+        "404":
+          description: Image not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "image not found"
+
+# === Vulnerabilities ===
+  /vulns:
+    post:
+      summary: Create a vulnerability
+      description: Create a new vulnerability record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/vuln_input"
+      responses:
+        "201":
+          description: Vulnerability created successfully (returns vulnerability ID as plain text)
+          content:
+            text/plain:
+              schema:
+                type: integer
+                example: 1
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+    get:
+      summary: List vulnerabilities
+      description: List all vulnerabilities with optional filtering
+      parameters:
+        - name: parent_id
+          in: query
+          description: Filter by parent vulnerability ID
+          required: false
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: Array of vulnerabilities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/vuln_list"
+
+  /vulns/{id}:
+    get:
+      summary: Get vulnerability details
+      description: Get vulnerability details by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Vulnerability ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: Vulnerability details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/vuln_detail"
+        "404":
+          description: Vulnerability not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+    put:
+      summary: Update a vulnerability
+      description: Update an existing vulnerability
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Vulnerability ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/vuln_input"
+      responses:
+        "200":
+          description: Vulnerability updated successfully
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+        "404":
+          description: Vulnerability not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+    delete:
+      summary: Delete a vulnerability
+      description: Delete a vulnerability by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Vulnerability ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "204":
+          description: Vulnerability deleted successfully
+        "404":
+          description: Vulnerability not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+        "400":
+          description: Cannot delete vulnerability with children
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /vulns/slug/{slug}:
+    get:
+      summary: Get vulnerability by slug
+      description: Get vulnerability details by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: Vulnerability slug
+          schema:
+            type: string
+            example: "sql-injection-vulnerability"
+      responses:
+        "200":
+          description: Vulnerability details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/vuln_detail"
+        "404":
+          description: Vulnerability not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
 # === Programs ===
   /programs:
@@ -664,6 +917,54 @@ components:
         original_filename: { type: string }
         url: { type: string }
 
+    image:
+      type: object
+      properties:
+        id: { type: integer }
+        filename: { type: string }
+        original_filename: { type: string }
+        url: { type: string }
+
+    vuln_input:
+      type: object
+      required: [title, body]
+      properties:
+        title: { type: string, example: "SQL Injection Vulnerability" }
+        body: { type: string, example: "This vulnerability allows attackers to inject malicious SQL queries..." }
+        parent_id: { type: integer, nullable: true, example: 1 }
+
+    vuln_list:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        slug: { type: string }
+        parent_id: { type: integer, nullable: true }
+
+    vuln_detail:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        body: { type: string }
+        slug: { type: string }
+        parent_id: { type: integer, nullable: true }
+        parent_vuln: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        notes: 
+          type: array
+          items:
+            $ref: "#/components/schemas/note_listing"
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/attachment"
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/image"
+
     program_input:
       type: object
       required: [name, url]
@@ -695,6 +996,9 @@ components:
             attachments:
               type: array
               items: { $ref: "#/components/schemas/attachment" }
+            images:
+              type: array
+              items: { $ref: "#/components/schemas/image" }
 
     endpoint_input:
       type: object
@@ -733,6 +1037,9 @@ components:
             attachments:
               type: array
               items: { $ref: "#/components/schemas/attachment" }
+            images:
+              type: array
+              items: { $ref: "#/components/schemas/image" }
           created_at: { type: string, format: date-time }
           updated_at: { type: string, format: date-time }
 
@@ -776,6 +1083,9 @@ components:
             attachments:
               type: array
               items: { $ref: "#/components/schemas/attachment" }
+            images:
+              type: array
+              items: { $ref: "#/components/schemas/image" }
 
     job:
       type: object
