@@ -29,7 +29,7 @@ func (s *EndpointService) Create(ctx context.Context, endpoint *models.Endpoint)
 // Get retrieves an endpoint by Id
 func (s *EndpointService) Get(ctx context.Context, id int) (*models.Endpoint, error) {
 	var endpoint models.Endpoint
-	if err := s.DB.WithContext(ctx).Preload("Program").Preload("Notes").Preload("Attachments").First(&endpoint, id).Error; err != nil {
+	if err := s.DB.WithContext(ctx).Preload("Program").Preload("Notes").Preload("Attachments").Preload("Tags").First(&endpoint, id).Error; err != nil {
 		return nil, err
 	}
 	return &endpoint, nil
@@ -38,7 +38,7 @@ func (s *EndpointService) Get(ctx context.Context, id int) (*models.Endpoint, er
 // List retrieves all endpoints
 func (s *EndpointService) List(ctx context.Context) ([]*models.Endpoint, error) {
 	var endpoints []*models.Endpoint
-	if err := s.DB.WithContext(ctx).Preload("Program").Preload("Notes").Preload("Attachments").Find(&endpoints).Error; err != nil {
+	if err := s.DB.WithContext(ctx).Preload("Program").Preload("Notes").Preload("Attachments").Preload("Tags").Find(&endpoints).Error; err != nil {
 		return nil, err
 	}
 	return endpoints, nil

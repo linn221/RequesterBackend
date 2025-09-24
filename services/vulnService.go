@@ -19,8 +19,8 @@ func (s *VulnService) Create(ctx context.Context, vuln *models.Vuln) (int, error
 		vuln.Slug = vuln.GenerateSlug()
 	}
 
-	// Validate parent exists if ParentId is provided
-	if vuln.ParentId != nil {
+	// Validate parent exists if ParentId is provided and greater than 0
+	if vuln.ParentId != nil && *vuln.ParentId > 0 {
 		var parentVuln models.Vuln
 		if err := s.DB.WithContext(ctx).First(&parentVuln, *vuln.ParentId).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -46,6 +46,7 @@ func (s *VulnService) Get(ctx context.Context, id int) (*models.Vuln, error) {
 		Preload("Attachments").
 		Preload("Images").
 		Preload("Notes").
+		Preload("Tags").
 		First(&vuln, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("vulnerability not found")
@@ -63,7 +64,8 @@ func (s *VulnService) List(ctx context.Context, parentId *int) ([]*models.Vuln, 
 		Preload("Children").
 		Preload("Attachments").
 		Preload("Images").
-		Preload("Notes")
+		Preload("Notes").
+		Preload("Tags")
 
 	if parentId != nil {
 		query = query.Where("parent_id = ?", *parentId)
@@ -87,8 +89,8 @@ func (s *VulnService) Update(ctx context.Context, id int, vuln *models.Vuln) (in
 		return 0, fmt.Errorf("failed to find vulnerability: %v", err)
 	}
 
-	// Validate parent exists if ParentId is provided and different from current
-	if vuln.ParentId != nil && *vuln.ParentId != id {
+	// Validate parent exists if ParentId is provided, greater than 0, and different from current
+	if vuln.ParentId != nil && *vuln.ParentId > 0 && *vuln.ParentId != id {
 		var parentVuln models.Vuln
 		if err := s.DB.WithContext(ctx).First(&parentVuln, *vuln.ParentId).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
@@ -153,6 +155,7 @@ func (s *VulnService) GetBySlug(ctx context.Context, slug string) (*models.Vuln,
 		Preload("Attachments").
 		Preload("Images").
 		Preload("Notes").
+		Preload("Tags").
 		Where("slug = ?", slug).
 		First(&vuln).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {

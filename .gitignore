@@ -4,6 +4,8 @@ requesterBackend
 RequesterBackend
 rest
 gorm.log
+app
+app.db
 
 # Binary files
 requester_backend

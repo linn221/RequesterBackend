@@ -1,7 +1,0 @@
-i am getting invalid image id when going to the url of the image. i think the path images conflict with the api endpoint. use the same directory when you store the attachement files, then you no longer have to worry about the conflict. 
-the newly genearated openapi spec portion does not fully match with the existing ones. (missing enum of reference_type, for example). fix the newly added ones
-Add Image DTO array when returning the detail of Request, Endpoint, Program, etc. Just like Request detail DTO will return array of Notes and Attachments associated with it. Refactor both the spec and the code.
-
-# Active
-the listing vuln dto should have parent name
-update parentId validation to check only if parentId is greater than 0, and makes sure if id is not equal to parentId (to prevent existing vuln to update as its own parent)

@@ -10,4 +10,7 @@ type Note struct {
 	Value         string    `gorm:"type:text;not null"`
 	CreatedAt     time.Time `gorm:"autoCreateTime"`
 	UpdatedAt     time.Time `gorm:"autoUpdateTime"`
+
+	// Polymorphic relationships
+	Tags []Tag `gorm:"many2many:taggables;foreignKey:Id;joinForeignKey:TaggableId;References:Id;joinReferences:TagId"`
 }

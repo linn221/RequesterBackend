@@ -11,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -35,14 +36,15 @@ func ConnectDB() *gorm.DB {
 		log.Fatal(err)
 	}
 
-	return connectDatabase()
+	// Use SQLite by default
+	return connectSQLite()
 	// connectRedis()
 }
 func GetBaseDir() string {
 	return _BASE_DIR
 }
 
-func connectDatabase() *gorm.DB {
+func connectMySQL() *gorm.DB {
 	databaseConfig := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
@@ -55,10 +57,41 @@ func connectDatabase() *gorm.DB {
 	db, err := gorm.Open(mysql.Open(databaseConfig), initConfig())
 
 	if err != nil {
-		panic("Fail To Connect Database")
+		panic("Fail To Connect MySQL Database")
 	}
 	migrate(db)
 	return db
+}
+
+func connectSQLite() *gorm.DB {
+	// Use app.db as the SQLite database file
+	dbPath := "app.db"
+
+	var err error
+	db, err := gorm.Open(sqlite.Open(dbPath), initConfig())
+
+	if err != nil {
+		panic("Fail To Connect SQLite Database")
+	}
+	migrate(db)
+	return db
+}
+
+// ConnectMySQL can be called to use MySQL instead of SQLite
+func ConnectMySQL() *gorm.DB {
+	// Load env from .env
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+	_BASE_DIR = dir
+	environmentPath := filepath.Join(dir, ".env")
+	err = godotenv.Load(environmentPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return connectMySQL()
 }
 
 // InitConfig Initialize Config

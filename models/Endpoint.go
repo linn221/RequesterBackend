@@ -33,4 +33,5 @@ type Endpoint struct {
 	Attachments []Attachment `gorm:"polymorphic:Reference;polymorphicValue:endpoints"`
 	Notes       []Note       `gorm:"polymorphic:Reference;polymorphicValue:endpoints"`
 	Images      []Image      `gorm:"polymorphic:Reference;polymorphicValue:endpoints"`
+	Tags        []Tag        `gorm:"many2many:taggables;foreignKey:Id;joinForeignKey:TaggableId;References:Id;joinReferences:TagId"`
 }

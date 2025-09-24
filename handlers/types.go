@@ -33,12 +33,13 @@ type NoteListing struct {
 }
 
 type NoteDetail struct {
-	Id            int    `json:"id"`
-	ReferenceType string `json:"reference_type"`
-	ReferenceId   int    `json:"reference_id"`
-	Value         string `json:"value"`
-	CreatedAt     string `json:"created_at"`
-	UpdatedAt     string `json:"updated_at"`
+	Id            int      `json:"id"`
+	ReferenceType string   `json:"reference_type"`
+	ReferenceId   int      `json:"reference_id"`
+	Value         string   `json:"value"`
+	CreatedAt     string   `json:"created_at"`
+	UpdatedAt     string   `json:"updated_at"`
+	Tags          []TagDTO `json:"tags"`
 }
 
 func ToNote(note *models.Note) *Note {
@@ -62,6 +63,11 @@ func ToNoteListing(note *models.Note) *NoteListing {
 }
 
 func ToNoteDetail(note *models.Note) *NoteDetail {
+	tags := make([]TagDTO, len(note.Tags))
+	for i, tag := range note.Tags {
+		tags[i] = *ToTagDTO(&tag)
+	}
+
 	return &NoteDetail{
 		Id:            note.Id,
 		ReferenceType: note.ReferenceType,
@@ -69,6 +75,7 @@ func ToNoteDetail(note *models.Note) *NoteDetail {
 		Value:         note.Value,
 		CreatedAt:     note.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:     note.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		Tags:          tags,
 	}
 }
 
@@ -116,18 +123,32 @@ func (input *VulnInput) ToModel() *models.Vuln {
 }
 
 type VulnList struct {
-	Id       int    `json:"id"`
-	Title    string `json:"title"`
-	Slug     string `json:"slug"`
-	ParentId *int   `json:"parent_id"`
+	Id         int      `json:"id"`
+	Title      string   `json:"title"`
+	Slug       string   `json:"slug"`
+	ParentId   *int     `json:"parent_id"`
+	ParentName *string  `json:"parent_name"`
+	Tags       []TagDTO `json:"tags"`
 }
 
 func ToVulnList(vuln *models.Vuln) *VulnList {
+	var parentName *string
+	if vuln.Parent != nil {
+		parentName = &vuln.Parent.Title
+	}
+
+	tags := make([]TagDTO, len(vuln.Tags))
+	for i, tag := range vuln.Tags {
+		tags[i] = *ToTagDTO(&tag)
+	}
+
 	return &VulnList{
-		Id:       vuln.Id,
-		Title:    vuln.Title,
-		Slug:     vuln.Slug,
-		ParentId: vuln.ParentId,
+		Id:         vuln.Id,
+		Title:      vuln.Title,
+		Slug:       vuln.Slug,
+		ParentId:   vuln.ParentId,
+		ParentName: parentName,
+		Tags:       tags,
 	}
 }
 
@@ -143,6 +164,7 @@ type VulnDetail struct {
 	Notes       []NoteListing `json:"notes"`
 	Attachments []Attachment  `json:"attachments"`
 	Images      []Image       `json:"images"`
+	Tags        []TagDTO      `json:"tags"`
 }
 
 func ToVulnDetail(vuln *models.Vuln) *VulnDetail {
@@ -179,6 +201,12 @@ func ToVulnDetail(vuln *models.Vuln) *VulnDetail {
 		}
 	}
 
+	// Convert tags to TagDTO
+	tags := make([]TagDTO, len(vuln.Tags))
+	for i, tag := range vuln.Tags {
+		tags[i] = *ToTagDTO(&tag)
+	}
+
 	return &VulnDetail{
 		Id:          vuln.Id,
 		Title:       vuln.Title,
@@ -191,6 +219,7 @@ func ToVulnDetail(vuln *models.Vuln) *VulnDetail {
 		Notes:       notes,
 		Attachments: attachments,
 		Images:      images,
+		Tags:        tags,
 	}
 }
 
@@ -214,16 +243,23 @@ func (input *ProgramInput) ToModel() *models.Program {
 }
 
 type ProgramList struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-	URL  string `json:"url"`
+	Id   int      `json:"id"`
+	Name string   `json:"name"`
+	URL  string   `json:"url"`
+	Tags []TagDTO `json:"tags"`
 }
 
 func ToProgramList(program *models.Program) *ProgramList {
+	tags := make([]TagDTO, len(program.Tags))
+	for i, tag := range program.Tags {
+		tags[i] = *ToTagDTO(&tag)
+	}
+
 	return &ProgramList{
 		Id:   program.Id,
 		Name: program.Name,
 		URL:  program.URL,
+		Tags: tags,
 	}
 }
 
@@ -237,6 +273,7 @@ type ProgramDetail struct {
 	Notes       []NoteListing `json:"notes"`
 	Attachments []Attachment  `json:"attachments"`
 	Images      []Image       `json:"images"`
+	Tags        []TagDTO      `json:"tags"`
 }
 
 func ToProgramDetail(program *models.Program) *ProgramDetail {
@@ -266,6 +303,11 @@ func ToProgramDetail(program *models.Program) *ProgramDetail {
 		}
 	}
 
+	tags := make([]TagDTO, len(program.Tags))
+	for i, tag := range program.Tags {
+		tags[i] = *ToTagDTO(&tag)
+	}
+
 	return &ProgramDetail{
 		Id:          program.Id,
 		Name:        program.Name,
@@ -276,6 +318,7 @@ func ToProgramDetail(program *models.Program) *ProgramDetail {
 		Notes:       notes,
 		Attachments: attachments,
 		Images:      images,
+		Tags:        tags,
 	}
 }
 
@@ -301,16 +344,17 @@ func (input *EndpointInput) ToModel() *models.Endpoint {
 }
 
 type EndpointList struct {
-	Id           int    `json:"id"`
-	ProgramId    int    `json:"program_id"`
-	ProgramName  string `json:"program_name"`
-	Domain       string `json:"domain"`
-	URI          string `json:"uri"`
-	Method       string `json:"method"`
-	EndpointType string `json:"endpoint_type"`
-	CreatedAt    string `json:"created_at"`
-	UpdatedAt    string `json:"updated_at"`
-	Text         string `json:"text"`
+	Id           int      `json:"id"`
+	ProgramId    int      `json:"program_id"`
+	ProgramName  string   `json:"program_name"`
+	Domain       string   `json:"domain"`
+	URI          string   `json:"uri"`
+	Method       string   `json:"method"`
+	EndpointType string   `json:"endpoint_type"`
+	CreatedAt    string   `json:"created_at"`
+	UpdatedAt    string   `json:"updated_at"`
+	Text         string   `json:"text"`
+	Tags         []TagDTO `json:"tags"`
 }
 
 func ToEndpointList(endpoint *models.Endpoint) *EndpointList {
@@ -349,6 +393,11 @@ func ToEndpointList(endpoint *models.Endpoint) *EndpointList {
 		}
 	}
 
+	tags := make([]TagDTO, len(endpoint.Tags))
+	for i, tag := range endpoint.Tags {
+		tags[i] = *ToTagDTO(&tag)
+	}
+
 	return &EndpointList{
 		Id:           endpoint.Id,
 		ProgramId:    endpoint.ProgramId,
@@ -360,6 +409,7 @@ func ToEndpointList(endpoint *models.Endpoint) *EndpointList {
 		CreatedAt:    endpoint.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:    endpoint.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		Text:         text,
+		Tags:         tags,
 	}
 }
 
@@ -377,6 +427,7 @@ type EndpointDetail struct {
 	Notes        []NoteListing `json:"notes"`
 	Attachments  []Attachment  `json:"attachments"`
 	Images       []Image       `json:"images"`
+	Tags         []TagDTO      `json:"tags"`
 }
 
 func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
@@ -411,6 +462,11 @@ func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
 		}
 	}
 
+	tags := make([]TagDTO, len(endpoint.Tags))
+	for i, tag := range endpoint.Tags {
+		tags[i] = *ToTagDTO(&tag)
+	}
+
 	return &EndpointDetail{
 		Id:           endpoint.Id,
 		ProgramId:    endpoint.ProgramId,
@@ -425,28 +481,30 @@ func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
 		Notes:        notes,
 		Attachments:  attachments,
 		Images:       images,
+		Tags:         tags,
 	}
 }
 
 // ===== Requests =====
 type RequestList struct {
-	Id               int    `json:"id"`
-	ProgramId        int    `json:"program_id"`
-	ProgramName      string `json:"program_name"`
-	EndpointId       int    `json:"endpoint_id"`
-	EndpointName     string `json:"endpoint_name"`
-	JobId            int    `json:"job_id"`
-	SequenceNumber   int    `json:"sequence_number"`
-	URL              string `json:"url"`
-	Method           string `json:"method"`
-	Domain           string `json:"domain"`
-	StatusCode       int    `json:"status_code"`
-	ContentType      string `json:"content_type"`
-	Size             int    `json:"size"`
-	ReqHash          string `json:"req_hash"`
-	ResponseHash     string `json:"response_hash"`
-	ResponseBodyHash string `json:"response_body_hash"`
-	Text             string `json:"text"`
+	Id               int      `json:"id"`
+	ProgramId        int      `json:"program_id"`
+	ProgramName      string   `json:"program_name"`
+	EndpointId       int      `json:"endpoint_id"`
+	EndpointName     string   `json:"endpoint_name"`
+	JobId            int      `json:"job_id"`
+	SequenceNumber   int      `json:"sequence_number"`
+	URL              string   `json:"url"`
+	Method           string   `json:"method"`
+	Domain           string   `json:"domain"`
+	StatusCode       int      `json:"status_code"`
+	ContentType      string   `json:"content_type"`
+	Size             int      `json:"size"`
+	ReqHash          string   `json:"req_hash"`
+	ResponseHash     string   `json:"response_hash"`
+	ResponseBodyHash string   `json:"response_body_hash"`
+	Text             string   `json:"text"`
+	Tags             []TagDTO `json:"tags"`
 }
 
 type RequestDetail struct {
@@ -472,6 +530,7 @@ type RequestDetail struct {
 	Notes            []NoteListing `json:"notes"`
 	Attachments      []Attachment  `json:"attachments"`
 	Images           []Image       `json:"images"`
+	Tags             []TagDTO      `json:"tags"`
 }
 
 // ===== Jobs =====
@@ -596,6 +655,12 @@ func ToRequestList(request *models.MyRequest) *RequestList {
 		}
 	}
 
+	// Convert tags
+	tags := make([]TagDTO, len(request.Tags))
+	for i, tag := range request.Tags {
+		tags[i] = *ToTagDTO(&tag)
+	}
+
 	return &RequestList{
 		Id:               request.Id,
 		ProgramId:        programId,
@@ -614,6 +679,7 @@ func ToRequestList(request *models.MyRequest) *RequestList {
 		ResponseHash:     request.ResHash,
 		ResponseBodyHash: request.ResBodyHash,
 		Text:             text,
+		Tags:             tags,
 	}
 }
 
@@ -679,6 +745,12 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 		}
 	}
 
+	// Convert tags
+	tags := make([]TagDTO, len(request.Tags))
+	for i, tag := range request.Tags {
+		tags[i] = *ToTagDTO(&tag)
+	}
+
 	return &RequestDetail{
 		Id:               request.Id,
 		ProgramId:        programId,
@@ -702,5 +774,33 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 		Notes:            notes,
 		Attachments:      attachments,
 		Images:           images,
+		Tags:             tags,
+	}
+}
+
+// ===== Tags =====
+type TagInput struct {
+	Name     string `json:"name" validate:"required"`
+	Priority int    `json:"priority"`
+}
+
+type TagDTO struct {
+	Id       int    `json:"id"`
+	Name     string `json:"name"`
+	Priority int    `json:"priority"`
+}
+
+func (input *TagInput) ToModel() *models.Tag {
+	return &models.Tag{
+		Name:     input.Name,
+		Priority: input.Priority,
+	}
+}
+
+func ToTagDTO(tag *models.Tag) *TagDTO {
+	return &TagDTO{
+		Id:       tag.Id,
+		Name:     tag.Name,
+		Priority: tag.Priority,
 	}
 }

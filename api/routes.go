@@ -140,6 +140,19 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 	}
 	mux.HandleFunc("GET /jobs", jobHandler.ListJobs)
 
+	// Tags
+	tagService := services.TagService{
+		DB: app.DB,
+	}
+	tagHandler := handlers.TagHandler{
+		Service: &tagService,
+	}
+	mux.HandleFunc("POST /tags", tagHandler.Create)
+	mux.HandleFunc("GET /tags", tagHandler.List)
+	mux.HandleFunc("GET /tags/{id}", tagHandler.Get)
+	mux.HandleFunc("PUT /tags/{id}", tagHandler.Update)
+	mux.HandleFunc("POST /apply-tags/{tagId}/{referenceType}/{referenceId}", tagHandler.ApplyTag)
+
 	// Add Swagger UI routes for development
 	// To disable in production, comment out the following line:
 	addSwaggerRoutes(mux)

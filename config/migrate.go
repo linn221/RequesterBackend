@@ -10,6 +10,8 @@ func migrate(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&models.Program{},    // No dependencies
 		&models.ImportJob{},  // No dependencies
+		&models.Tag{},        // No dependencies
+		&models.Taggable{},   // Depends on Tag
 		&models.Endpoint{},   // Depends on Program
 		&models.MyRequest{},  // Depends on Program, ImportJob, Endpoint
 		&models.Vuln{},       // Self-referencing, no external dependencies

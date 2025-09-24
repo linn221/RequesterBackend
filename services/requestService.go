@@ -83,8 +83,7 @@ func (s *RequestService) buildOrderClauses(orderBy1 string, asc1 bool, orderBy2 
 // List retrieves requests with filtering and search
 func (s *RequestService) List(ctx context.Context, programId, endpointId, jobId *int, rawSQL, domain, urlContains, urlMatch string, includeSubdomains bool, orderBy1 string, asc1 bool, orderBy2 string, asc2 bool, orderBy3 string, asc3 bool, orderBy4 string, asc4 bool) ([]*models.MyRequest, error) {
 	var requests []*models.MyRequest
-	query := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments")
-
+	query := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments").Preload("Tags")
 	// Apply filters
 	if programId != nil {
 		query = query.Where("program_id = ?", *programId)
@@ -137,7 +136,7 @@ func (s *RequestService) List(ctx context.Context, programId, endpointId, jobId 
 // Get retrieves a request by Id
 func (s *RequestService) Get(ctx context.Context, id int) (*models.MyRequest, error) {
 	var request models.MyRequest
-	if err := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments").First(&request, id).Error; err != nil {
+	if err := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments").Preload("Tags").First(&request, id).Error; err != nil {
 		return nil, err
 	}
 	return &request, nil
@@ -148,8 +147,7 @@ func (s *RequestService) SearchRequests(ctx context.Context, searchQuery, domain
 	var requests []*models.MyRequest
 
 	// Search in request body, response body, headers, and URL
-	query := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments")
-
+	query := s.DB.WithContext(ctx).Preload("Program").Preload("Endpoint").Preload("Notes").Preload("Attachments").Preload("Tags")
 	searchPattern := "%" + searchQuery + "%"
 	query = query.Where("url LIKE ? OR req_body LIKE ? OR res_body LIKE ? OR req_headers LIKE ? OR res_headers LIKE ?",
 		searchPattern, searchPattern, searchPattern, searchPattern, searchPattern)

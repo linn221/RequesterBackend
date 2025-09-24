@@ -18,7 +18,7 @@ func (app *App) Start(host, port string) error {
 	mux := app.RegisterRoutes()
 	server := &http.Server{
 		Addr:    fmt.Sprintf("%s:%s", host, port),
-		Handler: app.SecretMiddleware(middlewares.Recovery(mux)),
+		Handler: app.SecretMiddleware(middlewares.Recovery(middlewares.LoggingMiddleware(mux))),
 	}
 
 	fmt.Printf("Server starting on http://%s:%s\n", host, port)

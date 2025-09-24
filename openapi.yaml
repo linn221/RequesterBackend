@@ -68,6 +68,10 @@ paths:
                   type: string
                   description: Content of the note
                   example: "Found a vulnerability in login endpoint"
+                tag_ids:
+                  type: array
+                  items: { type: integer }
+                  description: Array of tag IDs to associate with the note
       responses:
         "201":
           description: Note created successfully (returns the note ID as plain text)
@@ -121,13 +125,7 @@ paths:
     get:
       summary: Get a note
       parameters:
-        - name: id
-          in: path
-          description: ID of the note to retrieve
-          required: true
-          schema:
-            type: integer
-            example: 101
+        - $ref: "#/components/parameters/id_path"
       responses:
         "200":
           description: Note details
@@ -136,46 +134,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/note_detail"
         "404":
-          description: Note not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: "note not found"
+          $ref: "#/components/responses/not_found"
 
     delete:
       summary: Delete a note
       description: Deletes a note by ID
       parameters:
-        - name: id
-          in: path
-          description: ID of the note to delete
-          required: true
-          schema:
-            type: integer
-            example: 101
+        - $ref: "#/components/parameters/id_path"
       responses:
         "204":
           description: Note deleted successfully
         "404":
-          description: Note not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: "note not found"
+          $ref: "#/components/responses/not_found"
 
     patch:
       summary: Update note value
       description: Updates only the `value` of a note
       parameters:
-        - name: id
-          in: path
-          description: ID of the note to update
-          required: true
-          schema:
-            type: integer
-            example: 101
+        - $ref: "#/components/parameters/id_path"
         - name: value
           in: query
           description: New value for the note
@@ -185,14 +161,9 @@ paths:
             example: "Updated note value"
       responses:
         "201":
-          description: Note updated successfully (no body)
+          $ref: "#/components/responses/updated"
         "404":
-          description: Note not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: "note not found"
+          $ref: "#/components/responses/not_found"
 
 # === Attachments ===
   /attachments:
@@ -240,23 +211,12 @@ paths:
       summary: Delete an attachment
       description: Deletes an attachment by ID
       parameters:
-        - name: id
-          in: query
-          description: ID of the attachment to delete
-          required: true
-          schema:
-            type: integer
-            example: 555
+        - $ref: "#/components/parameters/id_query"
       responses:
         "204":
           description: Attachment deleted successfully
         "404":
-          description: Attachment not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: "attachment not found"
+          $ref: "#/components/responses/not_found"
 
 # === Images ===
   /images:
@@ -307,36 +267,19 @@ paths:
       summary: Delete an image
       description: Deletes an image by ID
       parameters:
-        - name: id
-          in: query
-          description: ID of the image to delete
-          required: true
-          schema:
-            type: integer
-            example: 555
+        - $ref: "#/components/parameters/id_query"
       responses:
         "204":
           description: Image deleted successfully
         "404":
-          description: Image not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: "image not found"
+          $ref: "#/components/responses/not_found"
 
   /images/{id}:
     get:
       summary: Get image details
       description: Get image metadata by ID
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Image ID
-          schema:
-            type: integer
-            example: 555
+        - $ref: "#/components/parameters/id_path"
       responses:
         "200":
           description: Image details
@@ -345,12 +288,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/image"
         "404":
-          description: Image not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: "image not found"
+          $ref: "#/components/responses/not_found"
 
 # === Vulnerabilities ===
   /vulns:
@@ -404,13 +342,7 @@ paths:
       summary: Get vulnerability details
       description: Get vulnerability details by ID
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Vulnerability ID
-          schema:
-            type: integer
-            example: 1
+        - $ref: "#/components/parameters/id_path"
       responses:
         "200":
           description: Vulnerability details
@@ -419,23 +351,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/vuln_detail"
         "404":
-          description: Vulnerability not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
+          $ref: "#/components/responses/not_found"
 
     put:
       summary: Update a vulnerability
       description: Update an existing vulnerability
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Vulnerability ID
-          schema:
-            type: integer
-            example: 1
+        - $ref: "#/components/parameters/id_path"
       requestBody:
         required: true
         content:
@@ -444,46 +366,24 @@ paths:
               $ref: "#/components/schemas/vuln_input"
       responses:
         "200":
-          description: Vulnerability updated successfully
+          $ref: "#/components/responses/updated"
         "400":
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
+          $ref: "#/components/responses/bad_request"
         "404":
-          description: Vulnerability not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
+          $ref: "#/components/responses/not_found"
 
     delete:
       summary: Delete a vulnerability
       description: Delete a vulnerability by ID
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Vulnerability ID
-          schema:
-            type: integer
-            example: 1
+        - $ref: "#/components/parameters/id_path"
       responses:
         "204":
           description: Vulnerability deleted successfully
         "404":
-          description: Vulnerability not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
+          $ref: "#/components/responses/not_found"
         "400":
-          description: Cannot delete vulnerability with children
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
+          $ref: "#/components/responses/bad_request"
 
   /vulns/slug/{slug}:
     get:
@@ -505,11 +405,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/vuln_detail"
         "404":
-          description: Vulnerability not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
+          $ref: "#/components/responses/not_found"
 
 # === Programs ===
   /programs:
@@ -546,13 +442,7 @@ paths:
     get:
       summary: Get program details
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Program ID
-          schema:
-            type: integer
-            example: 1
+        - $ref: "#/components/parameters/id_path"
       responses:
         "200":
           description: Program details
@@ -561,21 +451,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/program_detail"
         "404":
-          description: Program not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: "program not found"
+          $ref: "#/components/responses/not_found"
 
     put:
       summary: Update a program
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/id_path"
       requestBody:
         required: true
         content:
@@ -584,16 +465,12 @@ paths:
               $ref: "#/components/schemas/program_input"
       responses:
         "200":
-          description: Program updated successfully (no body)
+          $ref: "#/components/responses/updated"
 
     delete:
       summary: Delete a program
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/id_path"
       responses:
         "204":
           description: Program deleted successfully
@@ -633,13 +510,7 @@ paths:
     get:
       summary: Get endpoint details
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Endpoint ID
-          schema:
-            type: integer
-            example: 10
+        - $ref: "#/components/parameters/id_path"
       responses:
         "200":
           description: Endpoint details
@@ -648,21 +519,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/endpoint_detail"
         "404":
-          description: Endpoint not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: "endpoint not found"
+          $ref: "#/components/responses/not_found"
 
     put:
       summary: Update an endpoint
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/id_path"
       requestBody:
         required: true
         content:
@@ -671,16 +533,12 @@ paths:
               $ref: "#/components/schemas/endpoint_input"
       responses:
         "200":
-          description: Endpoint updated successfully (no body)
+          $ref: "#/components/responses/updated"
 
     delete:
       summary: Delete an endpoint
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/id_path"
       responses:
         "204":
           description: Endpoint deleted successfully
@@ -769,11 +627,7 @@ paths:
     get:
       summary: Get request details
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/id_path"
       responses:
         "200":
           description: Request details
@@ -782,12 +636,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/request_detail"
         "404":
-          description: Request not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: "request not found"
+          $ref: "#/components/responses/not_found"
 
 # === Import HAR ===
   /import_har:
@@ -877,8 +726,144 @@ paths:
                 items:
                   $ref: "#/components/schemas/job"
 
+# === Tags ===
+  /tags:
+    post:
+      summary: Create a tag
+      description: Create a new tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/tag_input"
+      responses:
+        "201":
+          $ref: "#/components/responses/created_with_id"
+        "400":
+          $ref: "#/components/responses/bad_request"
+
+    get:
+      summary: List tags
+      description: List all tags
+      responses:
+        "200":
+          description: Array of tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/tag"
+
+  /tags/{id}:
+    get:
+      summary: Get tag details
+      description: Get tag details by ID
+      parameters:
+        - $ref: "#/components/parameters/id_path"
+      responses:
+        "200":
+          description: Tag details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tag"
+        "404":
+          $ref: "#/components/responses/not_found"
+
+    put:
+      summary: Update a tag
+      description: Update an existing tag
+      parameters:
+        - $ref: "#/components/parameters/id_path"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/tag_input"
+      responses:
+        "200":
+          $ref: "#/components/responses/updated"
+        "400":
+          $ref: "#/components/responses/bad_request"
+        "404":
+          $ref: "#/components/responses/not_found"
+
+  /apply-tags/{tagId}/{referenceType}/{referenceId}:
+    post:
+      summary: Apply tag to resource
+      description: Apply a tag to a specific resource
+      parameters:
+        - name: tagId
+          in: path
+          required: true
+          description: Tag ID
+          schema:
+            type: integer
+        - name: referenceType
+          in: path
+          required: true
+          description: Reference type
+          schema:
+            type: string
+            enum: [programs, endpoints, requests, vulns, notes]
+        - name: referenceId
+          in: path
+          required: true
+          description: Reference ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          $ref: "#/components/responses/updated"
+        "400":
+          $ref: "#/components/responses/bad_request"
+        "404":
+          $ref: "#/components/responses/not_found"
+
 # === Components ===
 components:
+  parameters:
+    id_path:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+      description: Resource ID
+      example: 1
+    
+    id_query:
+      name: id
+      in: query
+      required: true
+      schema: { type: integer }
+      description: Resource ID
+      example: 1
+
+  responses:
+    not_found:
+      description: Resource not found
+      content:
+        text/plain:
+          schema: { type: string, example: "resource not found" }
+    
+    bad_request:
+      description: Invalid input
+      content:
+        text/plain:
+          schema: { type: string, example: "invalid request" }
+    
+    created_with_id:
+      description: Resource created successfully (returns ID as plain text)
+      content:
+        text/plain:
+          schema: { type: integer, example: 1 }
+    
+    updated:
+      description: Resource updated successfully
+
   schemas:
     note:
       type: object
@@ -889,6 +874,9 @@ components:
         value: { type: string }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/tag" }
 
     note_listing:
       type: object
@@ -908,6 +896,9 @@ components:
         value: { type: string }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/tag" }
 
     attachment:
       type: object
@@ -932,6 +923,9 @@ components:
         title: { type: string, example: "SQL Injection Vulnerability" }
         body: { type: string, example: "This vulnerability allows attackers to inject malicious SQL queries..." }
         parent_id: { type: integer, nullable: true, example: 1 }
+        tag_ids:
+          type: array
+          items: { type: integer }
 
     vuln_list:
       type: object
@@ -940,6 +934,10 @@ components:
         title: { type: string }
         slug: { type: string }
         parent_id: { type: integer, nullable: true }
+        parent_name: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/tag" }
 
     vuln_detail:
       type: object
@@ -964,6 +962,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/image"
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/tag" }
 
     program_input:
       type: object
@@ -974,6 +975,9 @@ components:
         scope: { type: string, example: "internal" }
         domains: { type: string, example: "example.com" }
         note: { type: string, example: "Initial program note" }
+        tag_ids:
+          type: array
+          items: { type: integer }
 
     program_list:
       type: object
@@ -981,6 +985,9 @@ components:
         id: { type: integer }
         name: { type: string }
         url: { type: string }
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/tag" }
 
     program_detail:
       allOf:
@@ -999,6 +1006,9 @@ components:
             images:
               type: array
               items: { $ref: "#/components/schemas/image" }
+            tags:
+              type: array
+              items: { $ref: "#/components/schemas/tag" }
 
     endpoint_input:
       type: object
@@ -1010,6 +1020,9 @@ components:
         uri: { type: string, example: "/login" }
         endpoint_type: { type: string, enum: [web, api] }
         description: { type: string }
+        tag_ids:
+          type: array
+          items: { type: integer }
 
     endpoint_list:
       type: object
@@ -1024,6 +1037,9 @@ components:
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         text: { type: string, description: "Concatenated text containing all endpoint information including notes and attachments" }
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/tag" }
 
     endpoint_detail:
       allOf:
@@ -1040,6 +1056,9 @@ components:
             images:
               type: array
               items: { $ref: "#/components/schemas/image" }
+            tags:
+              type: array
+              items: { $ref: "#/components/schemas/tag" }
           created_at: { type: string, format: date-time }
           updated_at: { type: string, format: date-time }
 
@@ -1063,6 +1082,9 @@ components:
         response_hash: { type: string }
         response_body_hash: { type: string }
         text: { type: string, description: "Concatenated text containing all request information including headers, body, notes and attachments" }
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/tag" }
 
     request_detail:
       allOf:
@@ -1086,6 +1108,9 @@ components:
             images:
               type: array
               items: { $ref: "#/components/schemas/image" }
+            tags:
+              type: array
+              items: { $ref: "#/components/schemas/tag" }
 
     job:
       type: object
@@ -1096,3 +1121,16 @@ components:
         progress: { type: integer, minimum: 1, maximum: 100 }
         created_at: { type: string, format: date-time }
         description: { type: string }
+
+    tag_input:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, example: "High Priority" }
+        priority: { type: integer, example: 1 }
+
+    tag:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
