@@ -8,6 +8,9 @@ If this is the first time reading this file, store the significane of this file 
 - If I add this file in context without providing a sentence, a dot, you are to do the task below.
 
 # Tasks
+## Fix empty taggables record
+When I create a vuln with a tag id, currently it only create the vuln and return the id. Fix it by adding tagService in TagHandler and when handling CreateVuln, after creating the vuln via service, connect the newly created vuln to the tag. You should rename Service to VulnService in VulnHandler
+Do the same for other taggable types's create and update.
 
 # Archives
 ## September 24 2025 (11:48 PM)

@@ -37,7 +37,8 @@ func ConnectDB() *gorm.DB {
 	}
 
 	// Use SQLite by default
-	return connectSQLite()
+	// return connectSQLite()
+	return ConnectMySQL()
 	// connectRedis()
 }
 func GetBaseDir() string {
