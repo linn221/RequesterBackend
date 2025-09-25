@@ -28,14 +28,6 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 	noteService := services.NoteService{
 		DB: app.DB,
 	}
-	noteHandler := handlers.NoteHandler{
-		Service: &noteService,
-	}
-	mux.HandleFunc("POST /notes", noteHandler.Create)
-	mux.HandleFunc("GET /notes", noteHandler.List)
-	mux.HandleFunc("GET /notes/{id}", noteHandler.Get)
-	mux.HandleFunc("DELETE /notes/{id}", noteHandler.Delete)
-	mux.HandleFunc("PATCH /notes/{id}", noteHandler.Update)
 
 	// Attachments
 	attachmentService := services.AttachmentService{
@@ -66,12 +58,29 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /images/{id}", imageHandler.GetImage)
 	mux.HandleFunc("GET /images/file/{filename}", imageHandler.ServeImage)
 
+	// Tags
+	tagService := services.TagService{
+		DB: app.DB,
+	}
+
+	// Note Handler
+	noteHandler := handlers.NoteHandler{
+		Service:    &noteService,
+		TagService: &tagService,
+	}
+	mux.HandleFunc("POST /notes", noteHandler.Create)
+	mux.HandleFunc("GET /notes", noteHandler.List)
+	mux.HandleFunc("GET /notes/{id}", noteHandler.Get)
+	mux.HandleFunc("DELETE /notes/{id}", noteHandler.Delete)
+	mux.HandleFunc("PATCH /notes/{id}", noteHandler.Update)
+
 	// Vulnerabilities
 	vulnService := services.VulnService{
 		DB: app.DB,
 	}
 	vulnHandler := handlers.VulnHandler{
-		Service: &vulnService,
+		VulnService: &vulnService,
+		TagService:  &tagService,
 	}
 	mux.HandleFunc("POST /vulns", vulnHandler.Create)
 	mux.HandleFunc("GET /vulns", vulnHandler.List)
@@ -85,7 +94,8 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 		DB: app.DB,
 	}
 	programHandler := handlers.ProgramHandler{
-		Service: &programService,
+		Service:    &programService,
+		TagService: &tagService,
 	}
 	mux.HandleFunc("POST /programs", programHandler.Create)
 	mux.HandleFunc("GET /programs", programHandler.List)
@@ -98,7 +108,8 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 		DB: app.DB,
 	}
 	endpointHandler := handlers.EndpointHandler{
-		Service: &endpointService,
+		Service:    &endpointService,
+		TagService: &tagService,
 	}
 	mux.HandleFunc("POST /endpoints", endpointHandler.Create)
 	mux.HandleFunc("GET /endpoints", endpointHandler.List)
@@ -140,10 +151,7 @@ func (app *App) RegisterRoutes() *http.ServeMux {
 	}
 	mux.HandleFunc("GET /jobs", jobHandler.ListJobs)
 
-	// Tags
-	tagService := services.TagService{
-		DB: app.DB,
-	}
+	// Tag Handler
 	tagHandler := handlers.TagHandler{
 		Service: &tagService,
 	}

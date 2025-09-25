@@ -44,7 +44,7 @@ type MyRequest struct {
 	Attachments []Attachment `gorm:"polymorphic:Reference;polymorphicValue:requests"`
 	Notes       []Note       `gorm:"polymorphic:Reference;polymorphicValue:requests"`
 	Images      []Image      `gorm:"polymorphic:Reference;polymorphicValue:requests"`
-	Tags        []Tag        `gorm:"many2many:taggables;foreignKey:Id;joinForeignKey:TaggableId;References:Id;joinReferences:TagId"`
+	Taggables   []Taggable   `gorm:"polymorphic:Taggable;polymorphicValue:requests"`
 }
 
 // Temporary struct for parsing HAR files (with HeaderSlice fields)

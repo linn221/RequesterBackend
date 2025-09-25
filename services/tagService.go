@@ -12,6 +12,14 @@ type TagService struct {
 	DB *gorm.DB
 }
 
+// instantiate a new service with the given DB to use in db transaction
+// non standard/universal quick hack method
+func (s *TagService) CloneWithDb(db *gorm.DB) *TagService {
+	return &TagService{
+		DB: db,
+	}
+}
+
 // Create creates a new tag and returns its Id
 func (s *TagService) Create(ctx context.Context, tag *models.Tag) (int, error) {
 	if err := s.DB.WithContext(ctx).Create(tag).Error; err != nil {

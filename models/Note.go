@@ -12,5 +12,5 @@ type Note struct {
 	UpdatedAt     time.Time `gorm:"autoUpdateTime"`
 
 	// Polymorphic relationships
-	Tags []Tag `gorm:"many2many:taggables;foreignKey:Id;joinForeignKey:TaggableId;References:Id;joinReferences:TagId"`
+	Taggables []Taggable `gorm:"polymorphic:Taggable;polymorphicValue:notes"`
 }

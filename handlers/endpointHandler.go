@@ -8,7 +8,8 @@ import (
 )
 
 type EndpointHandler struct {
-	Service *services.EndpointService
+	Service    *services.EndpointService
+	TagService *services.TagService
 }
 
 func (h *EndpointHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -22,6 +23,15 @@ func (h *EndpointHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.RespondError(w, err)
 		return
+	}
+
+	// Connect tags if provided
+	if len(input.TagIds) > 0 {
+		err = h.TagService.ConnectTagsToReference(r.Context(), input.TagIds, "endpoints", id)
+		if err != nil {
+			utils.RespondError(w, err)
+			return
+		}
 	}
 
 	utils.OkCreated(w, id)
@@ -44,6 +54,32 @@ func (h *EndpointHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.RespondError(w, err)
 		return
+	}
+
+	// Handle tag connections for updates
+	// First, get existing tags for this endpoint
+	existingTags, err := h.TagService.GetTagsForReference(r.Context(), "endpoints", id)
+	if err != nil {
+		utils.RespondError(w, err)
+		return
+	}
+
+	// Disconnect existing tags
+	for _, tag := range existingTags {
+		err = h.TagService.DisconnectTagFromReference(r.Context(), tag.Id, "endpoints", id)
+		if err != nil {
+			utils.RespondError(w, err)
+			return
+		}
+	}
+
+	// Connect new tags if provided
+	if len(input.TagIds) > 0 {
+		err = h.TagService.ConnectTagsToReference(r.Context(), input.TagIds, "endpoints", id)
+		if err != nil {
+			utils.RespondError(w, err)
+			return
+		}
 	}
 
 	utils.OkUpdated(w)

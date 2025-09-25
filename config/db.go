@@ -106,9 +106,11 @@ func initConfig() *gorm.Config {
 // InitLog Connection Log Configuration
 func initLog() logger.Interface {
 	f, _ := os.Create("gorm.log")
-	newLogger := logger.New(log.New(io.MultiWriter(f), "\r\n", log.LstdFlags), logger.Config{
+	// Log to both file and standard output
+	multiWriter := io.MultiWriter(f, os.Stdout)
+	newLogger := logger.New(log.New(multiWriter, "\r\n", log.LstdFlags), logger.Config{
 		Colorful:      true,
-		LogLevel:      logger.Info,
+		LogLevel:      logger.Info, // This will show SQL queries
 		SlowThreshold: time.Second,
 	})
 	return newLogger

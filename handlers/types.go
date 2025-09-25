@@ -14,6 +14,7 @@ type CreateNoteRequest struct {
 	ReferenceType string `json:"reference_type" validate:"required,oneof=programs endpoints requests vulns"`
 	ReferenceId   int    `json:"reference_id" validate:"required"`
 	Value         string `json:"value" validate:"required"`
+	TagIds        []int  `json:"tag_ids"`
 }
 
 type Note struct {
@@ -63,9 +64,9 @@ func ToNoteListing(note *models.Note) *NoteListing {
 }
 
 func ToNoteDetail(note *models.Note) *NoteDetail {
-	tags := make([]TagDTO, len(note.Tags))
-	for i, tag := range note.Tags {
-		tags[i] = *ToTagDTO(&tag)
+	tags := make([]TagDTO, len(note.Taggables))
+	for i, taggable := range note.Taggables {
+		tags[i] = *ToTagDTO(&taggable.Tag)
 	}
 
 	return &NoteDetail{
@@ -112,13 +113,19 @@ type VulnInput struct {
 	Title    string `json:"title" validate:"required"`
 	Body     string `json:"body" validate:"required"`
 	ParentId *int   `json:"parent_id"`
+	TagIds   []int  `json:"tag_ids"`
 }
 
 func (input *VulnInput) ToModel() *models.Vuln {
+	var parentId *int
+	if input.ParentId != nil && *input.ParentId > 0 {
+		parentId = input.ParentId
+	}
+
 	return &models.Vuln{
 		Title:    input.Title,
 		Body:     input.Body,
-		ParentId: input.ParentId,
+		ParentId: parentId,
 	}
 }
 
@@ -137,9 +144,9 @@ func ToVulnList(vuln *models.Vuln) *VulnList {
 		parentName = &vuln.Parent.Title
 	}
 
-	tags := make([]TagDTO, len(vuln.Tags))
-	for i, tag := range vuln.Tags {
-		tags[i] = *ToTagDTO(&tag)
+	tags := make([]TagDTO, len(vuln.Taggables))
+	for i, taggable := range vuln.Taggables {
+		tags[i] = *ToTagDTO(&taggable.Tag)
 	}
 
 	return &VulnList{
@@ -202,9 +209,9 @@ func ToVulnDetail(vuln *models.Vuln) *VulnDetail {
 	}
 
 	// Convert tags to TagDTO
-	tags := make([]TagDTO, len(vuln.Tags))
-	for i, tag := range vuln.Tags {
-		tags[i] = *ToTagDTO(&tag)
+	tags := make([]TagDTO, len(vuln.Taggables))
+	for i, taggable := range vuln.Taggables {
+		tags[i] = *ToTagDTO(&taggable.Tag)
 	}
 
 	return &VulnDetail{
@@ -230,6 +237,7 @@ type ProgramInput struct {
 	Scope   string `json:"scope"`
 	Domains string `json:"domains"`
 	Note    string `json:"note"`
+	TagIds  []int  `json:"tag_ids"`
 }
 
 func (input *ProgramInput) ToModel() *models.Program {
@@ -250,9 +258,9 @@ type ProgramList struct {
 }
 
 func ToProgramList(program *models.Program) *ProgramList {
-	tags := make([]TagDTO, len(program.Tags))
-	for i, tag := range program.Tags {
-		tags[i] = *ToTagDTO(&tag)
+	tags := make([]TagDTO, len(program.Taggables))
+	for i, taggable := range program.Taggables {
+		tags[i] = *ToTagDTO(&taggable.Tag)
 	}
 
 	return &ProgramList{
@@ -303,9 +311,9 @@ func ToProgramDetail(program *models.Program) *ProgramDetail {
 		}
 	}
 
-	tags := make([]TagDTO, len(program.Tags))
-	for i, tag := range program.Tags {
-		tags[i] = *ToTagDTO(&tag)
+	tags := make([]TagDTO, len(program.Taggables))
+	for i, taggable := range program.Taggables {
+		tags[i] = *ToTagDTO(&taggable.Tag)
 	}
 
 	return &ProgramDetail{
@@ -330,6 +338,7 @@ type EndpointInput struct {
 	URI          string `json:"uri" validate:"required"`
 	EndpointType string `json:"endpoint_type" validate:"required,oneof=web api"`
 	Description  string `json:"description" validate:"required"`
+	TagIds       []int  `json:"tag_ids"`
 }
 
 func (input *EndpointInput) ToModel() *models.Endpoint {
@@ -393,9 +402,9 @@ func ToEndpointList(endpoint *models.Endpoint) *EndpointList {
 		}
 	}
 
-	tags := make([]TagDTO, len(endpoint.Tags))
-	for i, tag := range endpoint.Tags {
-		tags[i] = *ToTagDTO(&tag)
+	tags := make([]TagDTO, len(endpoint.Taggables))
+	for i, taggable := range endpoint.Taggables {
+		tags[i] = *ToTagDTO(&taggable.Tag)
 	}
 
 	return &EndpointList{
@@ -462,9 +471,9 @@ func ToEndpointDetail(endpoint *models.Endpoint) *EndpointDetail {
 		}
 	}
 
-	tags := make([]TagDTO, len(endpoint.Tags))
-	for i, tag := range endpoint.Tags {
-		tags[i] = *ToTagDTO(&tag)
+	tags := make([]TagDTO, len(endpoint.Taggables))
+	for i, taggable := range endpoint.Taggables {
+		tags[i] = *ToTagDTO(&taggable.Tag)
 	}
 
 	return &EndpointDetail{
@@ -656,9 +665,9 @@ func ToRequestList(request *models.MyRequest) *RequestList {
 	}
 
 	// Convert tags
-	tags := make([]TagDTO, len(request.Tags))
-	for i, tag := range request.Tags {
-		tags[i] = *ToTagDTO(&tag)
+	tags := make([]TagDTO, len(request.Taggables))
+	for i, taggable := range request.Taggables {
+		tags[i] = *ToTagDTO(&taggable.Tag)
 	}
 
 	return &RequestList{
@@ -746,9 +755,9 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 	}
 
 	// Convert tags
-	tags := make([]TagDTO, len(request.Tags))
-	for i, tag := range request.Tags {
-		tags[i] = *ToTagDTO(&tag)
+	tags := make([]TagDTO, len(request.Taggables))
+	for i, taggable := range request.Taggables {
+		tags[i] = *ToTagDTO(&taggable.Tag)
 	}
 
 	return &RequestDetail{

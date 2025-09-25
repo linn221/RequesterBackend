@@ -2,6 +2,9 @@
 
 This document outlines the coding conventions, patterns, and rules followed in the RequesterBackend project.
 
+## Rules
+run bash script start.sh to build and run the program after a prompt has been finished processing to save me more time
+
 ## API Response Patterns
 
 ### Create Operations (POST)

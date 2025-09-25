@@ -8,11 +8,37 @@ If this is the first time reading this file, store the significane of this file 
 - If I add this file in context without providing a sentence, a dot, you are to do the task below.
 
 # Tasks
+## Modification in types.go
+TagDTO should not have priority, it is a database thing for ordering on some occasion, not for displaying the user
+In CreateTag, priority is an optional field, and if omitted, it will be stored as 1. Update that fact in the openapi spec
+## Add smoke test bash scripts
+Add bash scripts that will test if the API is working as intended for all resources, using httpie.
+for example, it should be like: first create a tag with input that makes sense (learn from the spec, of course), and add the text 'created' on name or description or some field to feedback that create endpoint works. then create a second one just like the first, and update it, setting a certain field with text message 'updated'. Then, create the third, and delete it. Then, you will list the tags and print it, and i could see from the output that CRUD works. This is just a basic idea, but you should do more but don't make an exhausted list and only test the positive cases with possible input that makes sense in various scenerios. Then, you do that for each resource, one resource per file, Program, Vuln, Endpoint, ... , with order that makes sense, (creating a second resource before updating the id 2, for example), excluding start-session, imports, test that required file input. You will name the files like "1_tag.sh, 2_vuln.sh, 3_program.sh, etc", in a separate folder.
+Note that you must append --session=a in each httpie commands, because i will be starting the session before the test with name a, since all test need authentiation.
+## idk
+I have added custom code in vulnService and tagService and vulnHandler, creating a new instance of service to use db transaction since there are multiple sql statements for creating a resource, and connecting it to another resource, like Tag. Learn how I did and then apply it in other services that needs to work with TagService, ProgramService, NoteService, etc. (including Delete which require to execute raw sql for deleting related records)
+I might have errors when i do raw sql, so you should carefully review it.
+
+
+# Archives
+## September 25 2025 (09:46 PM)
+## Taggable
+I have learned via ChatGPT that I should do `Taggables []Taggable `gorm:"polymorphic:Taggable;polymorphicValue:vulns"` and then load like `var vuln Vuln
+db.Preload("Taggables.Tag").First(&vuln, 1)`. it seems gorm simply does not support your weird syntax for Tags []Tag in Vuln struct. I'd like you to refactor code in this way, instead of direct associations with Tags, we get Tags through []Taggable.
+Please also replace struct tags `primaryKey;column:Id` to just primaryKey.
+## September 25 2025 (09:30 PM)
+## Add GORM logging
+i am still getting the same error. make changes to gorm config to log the sql when error occurs on standard output
+## September 25 2025 (09:26 PM)
+## Fix tag connection error
+I am getting this error now when i create the vuln again with parent id of 0 `failed to connect tag to reference: Error 1054 (42S22): Unknown column 'id' in 'field list'`
+## September 25 2025 (09:19 PM)
+## Fix error
+I am getting `failed to create vulnerability: Error 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`requester_db`.`vulns`, CONSTRAINT `fk_vulns_children` FOREIGN KEY (`parent_id`) REFERENCES `vulns` (`id`))`, i created a vuln with parent_id of 0. i think you should make it null or some modification to the table or soemthing
+## September 25 2025 (09:09 PM)
 ## Fix empty taggables record
 When I create a vuln with a tag id, currently it only create the vuln and return the id. Fix it by adding tagService in TagHandler and when handling CreateVuln, after creating the vuln via service, connect the newly created vuln to the tag. You should rename Service to VulnService in VulnHandler
 Do the same for other taggable types's create and update.
-
-# Archives
 ## September 24 2025 (11:48 PM)
 ## Update DTO or the spec to show tags
 I have received no errors related to gorm. Now, you must respond tags (TagDTO) in Endpoint,Program,Note, etc (both listing and detail). I believe the spec file is already updated (include the fields) but could be wrong.

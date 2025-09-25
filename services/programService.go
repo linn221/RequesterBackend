@@ -29,7 +29,7 @@ func (s *ProgramService) Create(ctx context.Context, program *models.Program) (i
 // Get retrieves a program by Id
 func (s *ProgramService) Get(ctx context.Context, id int) (*models.Program, error) {
 	var program models.Program
-	if err := s.DB.WithContext(ctx).Preload("Endpoints").Preload("Requests").Preload("Notes").Preload("Tags").First(&program, id).Error; err != nil {
+	if err := s.DB.WithContext(ctx).Preload("Endpoints").Preload("Requests").Preload("Notes").Preload("Taggables.Tag").First(&program, id).Error; err != nil {
 		return nil, err
 	}
 	return &program, nil
@@ -38,7 +38,7 @@ func (s *ProgramService) Get(ctx context.Context, id int) (*models.Program, erro
 // List retrieves all programs
 func (s *ProgramService) List(ctx context.Context) ([]*models.Program, error) {
 	var programs []*models.Program
-	if err := s.DB.WithContext(ctx).Preload("Endpoints").Preload("Requests").Preload("Notes").Preload("Tags").Find(&programs).Error; err != nil {
+	if err := s.DB.WithContext(ctx).Preload("Endpoints").Preload("Requests").Preload("Notes").Preload("Taggables.Tag").Find(&programs).Error; err != nil {
 		return nil, err
 	}
 	return programs, nil

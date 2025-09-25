@@ -26,7 +26,7 @@ type Vuln struct {
 	Attachments []Attachment `gorm:"polymorphic:Reference;polymorphicValue:vulns"`
 	Images      []Image      `gorm:"polymorphic:Reference;polymorphicValue:vulns"`
 	Notes       []Note       `gorm:"polymorphic:Reference;polymorphicValue:vulns"`
-	Tags        []Tag        `gorm:"many2many:taggables;foreignKey:Id;joinForeignKey:TaggableId;References:Id;joinReferences:TagId"`
+	Taggables   []Taggable   `gorm:"polymorphic:Taggable;polymorphicValue:vulns"`
 }
 
 // GenerateSlug creates a URL-friendly slug from the title

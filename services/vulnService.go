@@ -12,6 +12,27 @@ type VulnService struct {
 	DB *gorm.DB
 }
 
+// will return a copy of the service but DB is a new transaction, and a function to be used with defer for closing dependencies, a function for commiting the transaction
+// for this case, it is DB, but for other services, it could be a file or something, therefore,I want to use this function signature as universal for creating new instance service, always returning new service, clean up function and commit function to call when the service has finished successfully(serve different purpose and the last one may be optional sometimes)
+func (s *VulnService) NewInstance(ctx context.Context) (*VulnService, func(), func() error) {
+
+	tx := s.DB.WithContext(ctx).Begin()
+	return &VulnService{
+			DB: tx,
+		}, func() {
+			tx.Rollback()
+		}, func() error {
+			return tx.Commit().Error
+		}
+}
+
+// instantiate a new service with the given DB to use in db transaction
+func (s *VulnService) CloneWithDb(db *gorm.DB) *VulnService {
+	return &VulnService{
+		DB: db,
+	}
+}
+
 // Create creates a new vulnerability and returns its Id
 func (s *VulnService) Create(ctx context.Context, vuln *models.Vuln) (int, error) {
 	// Generate slug if not provided
@@ -46,7 +67,7 @@ func (s *VulnService) Get(ctx context.Context, id int) (*models.Vuln, error) {
 		Preload("Attachments").
 		Preload("Images").
 		Preload("Notes").
-		Preload("Tags").
+		Preload("Taggables.Tag").
 		First(&vuln, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("vulnerability not found")
@@ -65,7 +86,7 @@ func (s *VulnService) List(ctx context.Context, parentId *int) ([]*models.Vuln, 
 		Preload("Attachments").
 		Preload("Images").
 		Preload("Notes").
-		Preload("Tags")
+		Preload("Taggables.Tag")
 
 	if parentId != nil {
 		query = query.Where("parent_id = ?", *parentId)
@@ -138,12 +159,23 @@ func (s *VulnService) Delete(ctx context.Context, id int) (int, error) {
 		return 0, fmt.Errorf("cannot delete vulnerability with child vulnerabilities")
 	}
 
+	tx := s.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
 	// Delete the vulnerability
-	if err := s.DB.WithContext(ctx).Delete(&vuln).Error; err != nil {
+	if err := tx.Delete(&vuln).Error; err != nil {
 		return 0, fmt.Errorf("failed to delete vulnerability: %v", err)
 	}
+	// cleaning related dependencies
+	err := tx.Exec("DELETE FROM taggables WHERE taggable_type = ? AND taggable_id = ?", models.TaggableTypeVulns, id).Error
+	if err != nil {
+		return 0, err
+	}
+	err = tx.Exec("DELETE FROM notes WHERE reference_type = 'notes' AND reference_id = ?", id).Error
+	if err != nil {
+		return 0, err
+	}
 
-	return vuln.Id, nil
+	return vuln.Id, tx.Commit().Error
 }
 
 // GetBySlug retrieves a vulnerability by slug
@@ -155,7 +187,7 @@ func (s *VulnService) GetBySlug(ctx context.Context, slug string) (*models.Vuln,
 		Preload("Attachments").
 		Preload("Images").
 		Preload("Notes").
-		Preload("Tags").
+		Preload("Taggables.Tag").
 		Where("slug = ?", slug).
 		First(&vuln).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {

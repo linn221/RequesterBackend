@@ -9,7 +9,8 @@ import (
 )
 
 type NoteHandler struct {
-	Service *services.NoteService
+	Service    *services.NoteService
+	TagService *services.TagService
 }
 
 func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +30,15 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.RespondError(w, err)
 		return
+	}
+
+	// Connect tags if provided
+	if len(input.TagIds) > 0 {
+		err = h.TagService.ConnectTagsToReference(r.Context(), input.TagIds, "notes", id)
+		if err != nil {
+			utils.RespondError(w, err)
+			return
+		}
 	}
 
 	utils.OkCreated(w, id)

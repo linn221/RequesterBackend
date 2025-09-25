@@ -22,5 +22,5 @@ type Program struct {
 	Attachments []Attachment `gorm:"polymorphic:Reference;polymorphicValue:programs"`
 	Notes       []Note       `gorm:"polymorphic:Reference;polymorphicValue:programs"`
 	Images      []Image      `gorm:"polymorphic:Reference;polymorphicValue:programs"`
-	Tags        []Tag        `gorm:"many2many:taggables;foreignKey:Id;joinForeignKey:TaggableId;References:Id;joinReferences:TagId"`
+	Taggables   []Taggable   `gorm:"polymorphic:Taggable;polymorphicValue:programs"`
 }

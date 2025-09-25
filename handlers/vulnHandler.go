@@ -9,7 +9,8 @@ import (
 )
 
 type VulnHandler struct {
-	Service *services.VulnService
+	VulnService *services.VulnService
+	TagService  *services.TagService
 }
 
 // Create handles POST /vulns
@@ -21,7 +22,26 @@ func (h *VulnHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vuln := input.ToModel()
-	id, err := h.Service.Create(r.Context(), vuln)
+	vulnService, close, commit := h.VulnService.NewInstance(r.Context())
+	defer close()
+
+	id, err := vulnService.Create(r.Context(), vuln)
+	if err != nil {
+		utils.RespondError(w, err)
+		return
+	}
+
+	// Connect tags if provided
+	if len(input.TagIds) > 0 {
+		tagService := h.TagService.CloneWithDb(vulnService.DB)
+		err = tagService.ConnectTagsToReference(r.Context(), input.TagIds, "vulns", id)
+		if err != nil {
+			utils.RespondError(w, err)
+			return
+		}
+	}
+
+	err = commit()
 	if err != nil {
 		utils.RespondError(w, err)
 		return
@@ -43,7 +63,7 @@ func (h *VulnHandler) List(w http.ResponseWriter, r *http.Request) {
 		parentId = &id
 	}
 
-	vulns, err := h.Service.List(r.Context(), parentId)
+	vulns, err := h.VulnService.List(r.Context(), parentId)
 	if err != nil {
 		utils.RespondError(w, err)
 		return
@@ -65,7 +85,7 @@ func (h *VulnHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vuln, err := h.Service.Get(r.Context(), id)
+	vuln, err := h.VulnService.Get(r.Context(), id)
 	if err != nil {
 		utils.RespondError(w, err)
 		return
@@ -80,7 +100,7 @@ func (h *VulnHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	slug := path[len("/vulns/slug/"):]
 
-	vuln, err := h.Service.GetBySlug(r.Context(), slug)
+	vuln, err := h.VulnService.GetBySlug(r.Context(), slug)
 	if err != nil {
 		utils.RespondError(w, err)
 		return
@@ -104,7 +124,42 @@ func (h *VulnHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vuln := input.ToModel()
-	_, err = h.Service.Update(r.Context(), id, vuln)
+
+	vulService, close, commit := h.VulnService.NewInstance(r.Context())
+	defer close()
+	_, err = vulService.Update(r.Context(), id, vuln)
+	if err != nil {
+		utils.RespondError(w, err)
+		return
+	}
+
+	tagService := h.TagService.CloneWithDb(vulService.DB)
+	// Handle tag connections for updates
+	// First, get existing tags for this vuln
+	existingTags, err := tagService.GetTagsForReference(r.Context(), "vulns", id)
+	if err != nil {
+		utils.RespondError(w, err)
+		return
+	}
+
+	// Disconnect existing tags
+	for _, tag := range existingTags {
+		err = tagService.DisconnectTagFromReference(r.Context(), tag.Id, "vulns", id)
+		if err != nil {
+			utils.RespondError(w, err)
+			return
+		}
+	}
+
+	// Connect new tags if provided
+	if len(input.TagIds) > 0 {
+		err = tagService.ConnectTagsToReference(r.Context(), input.TagIds, "vulns", id)
+		if err != nil {
+			utils.RespondError(w, err)
+			return
+		}
+	}
+	err = commit()
 	if err != nil {
 		utils.RespondError(w, err)
 		return
@@ -121,7 +176,7 @@ func (h *VulnHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.Service.Delete(r.Context(), id)
+	_, err = h.VulnService.Delete(r.Context(), id)
 	if err != nil {
 		utils.RespondError(w, err)
 		return

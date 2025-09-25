@@ -29,7 +29,7 @@ func (s *NoteService) Create(ctx context.Context, note *models.Note) (int, error
 // Get retrieves a note by Id
 func (s *NoteService) Get(ctx context.Context, id int) (*models.Note, error) {
 	var note models.Note
-	if err := s.DB.WithContext(ctx).Preload("Tags").First(&note, id).Error; err != nil {
+	if err := s.DB.WithContext(ctx).Preload("Taggables.Tag").First(&note, id).Error; err != nil {
 		return nil, err
 	}
 	return &note, nil
@@ -48,7 +48,7 @@ func (s *NoteService) List(ctx context.Context, referenceType string, search str
 		query = query.Where("value LIKE ?", "%"+search+"%")
 	}
 
-	if err := query.Preload("Tags").Find(&notes).Error; err != nil {
+	if err := query.Preload("Taggables.Tag").Find(&notes).Error; err != nil {
 		return nil, err
 	}
 	return notes, nil
