@@ -11,6 +11,25 @@ type NoteService struct {
 	DB *gorm.DB
 }
 
+// NewInstance returns a copy of the service with a new transaction
+func (s *NoteService) NewInstance(ctx context.Context) (*NoteService, func(), func() error) {
+	tx := s.DB.WithContext(ctx).Begin()
+	return &NoteService{
+			DB: tx,
+		}, func() {
+			tx.Rollback()
+		}, func() error {
+			return tx.Commit().Error
+		}
+}
+
+// CloneWithDb creates a new service instance with the given DB
+func (s *NoteService) CloneWithDb(db *gorm.DB) *NoteService {
+	return &NoteService{
+		DB: db,
+	}
+}
+
 func (s *NoteService) validate(db *gorm.DB, id int, input *models.Note) error {
 	return nil
 }
@@ -77,8 +96,19 @@ func (s *NoteService) Delete(ctx context.Context, id int) (int, error) {
 		return 0, err
 	}
 
-	if err := s.DB.WithContext(ctx).Delete(&note).Error; err != nil {
+	tx := s.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	// Delete the note
+	if err := tx.Delete(&note).Error; err != nil {
 		return 0, err
 	}
-	return note.Id, nil
+
+	// Clean up related dependencies
+	err = tx.Exec("DELETE FROM taggables WHERE taggable_type = ? AND taggable_id = ?", models.TaggableTypeNotes, id).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return note.Id, tx.Commit().Error
 }

@@ -790,26 +790,28 @@ func ToRequestDetail(request *models.MyRequest) *RequestDetail {
 // ===== Tags =====
 type TagInput struct {
 	Name     string `json:"name" validate:"required"`
-	Priority int    `json:"priority"`
+	Priority int    `json:"priority,omitempty"`
 }
 
 type TagDTO struct {
-	Id       int    `json:"id"`
-	Name     string `json:"name"`
-	Priority int    `json:"priority"`
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func (input *TagInput) ToModel() *models.Tag {
+	priority := input.Priority
+	if priority == 0 {
+		priority = 1 // Default priority if not provided
+	}
 	return &models.Tag{
 		Name:     input.Name,
-		Priority: input.Priority,
+		Priority: priority,
 	}
 }
 
 func ToTagDTO(tag *models.Tag) *TagDTO {
 	return &TagDTO{
-		Id:       tag.Id,
-		Name:     tag.Name,
-		Priority: tag.Priority,
+		Id:   tag.Id,
+		Name: tag.Name,
 	}
 }

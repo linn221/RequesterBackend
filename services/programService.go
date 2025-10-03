@@ -11,6 +11,25 @@ type ProgramService struct {
 	DB *gorm.DB
 }
 
+// NewInstance returns a copy of the service with a new transaction
+func (s *ProgramService) NewInstance(ctx context.Context) (*ProgramService, func(), func() error) {
+	tx := s.DB.WithContext(ctx).Begin()
+	return &ProgramService{
+			DB: tx,
+		}, func() {
+			tx.Rollback()
+		}, func() error {
+			return tx.Commit().Error
+		}
+}
+
+// CloneWithDb creates a new service instance with the given DB
+func (s *ProgramService) CloneWithDb(db *gorm.DB) *ProgramService {
+	return &ProgramService{
+		DB: db,
+	}
+}
+
 func (s *ProgramService) validate(db *gorm.DB, id int, input *models.Program) error {
 	return nil
 }
@@ -75,8 +94,23 @@ func (s *ProgramService) Delete(ctx context.Context, id int) (int, error) {
 		return 0, err
 	}
 
-	if err := s.DB.WithContext(ctx).Delete(&program).Error; err != nil {
+	tx := s.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	// Delete the program
+	if err := tx.Delete(&program).Error; err != nil {
 		return 0, err
 	}
-	return program.Id, nil
+
+	// Clean up related dependencies
+	err = tx.Exec("DELETE FROM taggables WHERE taggable_type = ? AND taggable_id = ?", models.TaggableTypePrograms, id).Error
+	if err != nil {
+		return 0, err
+	}
+	err = tx.Exec("DELETE FROM notes WHERE reference_type = 'programs' AND reference_id = ?", id).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return program.Id, tx.Commit().Error
 }

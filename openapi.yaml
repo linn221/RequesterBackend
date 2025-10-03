@@ -1127,7 +1127,7 @@ components:
       required: [name]
       properties:
         name: { type: string, example: "High Priority" }
-        priority: { type: integer, example: 1 }
+        priority: { type: integer, example: 1, description: "Priority for ordering (defaults to 1 if not provided)" }
 
     tag:
       type: object

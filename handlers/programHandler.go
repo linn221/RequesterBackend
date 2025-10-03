@@ -19,7 +19,10 @@ func (h *ProgramHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.Service.Create(r.Context(), input.ToModel())
+	programService, close, commit := h.Service.NewInstance(r.Context())
+	defer close()
+
+	id, err := programService.Create(r.Context(), input.ToModel())
 	if err != nil {
 		utils.RespondError(w, err)
 		return
@@ -27,11 +30,18 @@ func (h *ProgramHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Connect tags if provided
 	if len(input.TagIds) > 0 {
-		err = h.TagService.ConnectTagsToReference(r.Context(), input.TagIds, "programs", id)
+		tagService := h.TagService.CloneWithDb(programService.DB)
+		err = tagService.ConnectTagsToReference(r.Context(), input.TagIds, "programs", id)
 		if err != nil {
 			utils.RespondError(w, err)
 			return
 		}
+	}
+
+	err = commit()
+	if err != nil {
+		utils.RespondError(w, err)
+		return
 	}
 
 	utils.OkCreated(w, id)
@@ -50,15 +60,19 @@ func (h *ProgramHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.Service.Update(r.Context(), id, input.ToModel())
+	programService, close, commit := h.Service.NewInstance(r.Context())
+	defer close()
+
+	_, err = programService.Update(r.Context(), id, input.ToModel())
 	if err != nil {
 		utils.RespondError(w, err)
 		return
 	}
 
 	// Handle tag connections for updates
+	tagService := h.TagService.CloneWithDb(programService.DB)
 	// First, get existing tags for this program
-	existingTags, err := h.TagService.GetTagsForReference(r.Context(), "programs", id)
+	existingTags, err := tagService.GetTagsForReference(r.Context(), "programs", id)
 	if err != nil {
 		utils.RespondError(w, err)
 		return
@@ -66,7 +80,7 @@ func (h *ProgramHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Disconnect existing tags
 	for _, tag := range existingTags {
-		err = h.TagService.DisconnectTagFromReference(r.Context(), tag.Id, "programs", id)
+		err = tagService.DisconnectTagFromReference(r.Context(), tag.Id, "programs", id)
 		if err != nil {
 			utils.RespondError(w, err)
 			return
@@ -75,11 +89,17 @@ func (h *ProgramHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Connect new tags if provided
 	if len(input.TagIds) > 0 {
-		err = h.TagService.ConnectTagsToReference(r.Context(), input.TagIds, "programs", id)
+		err = tagService.ConnectTagsToReference(r.Context(), input.TagIds, "programs", id)
 		if err != nil {
 			utils.RespondError(w, err)
 			return
 		}
+	}
+
+	err = commit()
+	if err != nil {
+		utils.RespondError(w, err)
+		return
 	}
 
 	utils.OkUpdated(w)

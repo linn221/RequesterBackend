@@ -8,19 +8,17 @@ If this is the first time reading this file, store the significane of this file 
 - If I add this file in context without providing a sentence, a dot, you are to do the task below.
 
 # Tasks
-## Modification in types.go
-TagDTO should not have priority, it is a database thing for ordering on some occasion, not for displaying the user
-In CreateTag, priority is an optional field, and if omitted, it will be stored as 1. Update that fact in the openapi spec
-## Add smoke test bash scripts
-Add bash scripts that will test if the API is working as intended for all resources, using httpie.
-for example, it should be like: first create a tag with input that makes sense (learn from the spec, of course), and add the text 'created' on name or description or some field to feedback that create endpoint works. then create a second one just like the first, and update it, setting a certain field with text message 'updated'. Then, create the third, and delete it. Then, you will list the tags and print it, and i could see from the output that CRUD works. This is just a basic idea, but you should do more but don't make an exhausted list and only test the positive cases with possible input that makes sense in various scenerios. Then, you do that for each resource, one resource per file, Program, Vuln, Endpoint, ... , with order that makes sense, (creating a second resource before updating the id 2, for example), excluding start-session, imports, test that required file input. You will name the files like "1_tag.sh, 2_vuln.sh, 3_program.sh, etc", in a separate folder.
-Note that you must append --session=a in each httpie commands, because i will be starting the session before the test with name a, since all test need authentiation.
-## idk
-I have added custom code in vulnService and tagService and vulnHandler, creating a new instance of service to use db transaction since there are multiple sql statements for creating a resource, and connecting it to another resource, like Tag. Learn how I did and then apply it in other services that needs to work with TagService, ProgramService, NoteService, etc. (including Delete which require to execute raw sql for deleting related records)
-I might have errors when i do raw sql, so you should carefully review it.
 
 
 # Archives
+## October 03 2025 (04:15 PM)
+## Modification in types.go and Transaction Pattern Implementation
+TagDTO should not have priority, it is a database thing for ordering on some occasion, not for displaying the user
+In CreateTag, priority is an optional field, and if omitted, it will be stored as 1. Update that fact in the openapi spec
+
+I have added custom code in vulnService and tagService and vulnHandler, creating a new instance of service to use db transaction since there are multiple sql statements for creating a resource, and connecting it to another resource, like Tag. Learn how I did and then apply it in other services that needs to work with TagService, ProgramService, NoteService, etc. (including Delete which require to execute raw sql for deleting related records)
+I might have errors when i do raw sql, so you should carefully review it.
+
 ## September 25 2025 (09:46 PM)
 ## Taggable
 I have learned via ChatGPT that I should do `Taggables []Taggable `gorm:"polymorphic:Taggable;polymorphicValue:vulns"` and then load like `var vuln Vuln

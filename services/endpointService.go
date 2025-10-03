@@ -11,6 +11,25 @@ type EndpointService struct {
 	DB *gorm.DB
 }
 
+// NewInstance returns a copy of the service with a new transaction
+func (s *EndpointService) NewInstance(ctx context.Context) (*EndpointService, func(), func() error) {
+	tx := s.DB.WithContext(ctx).Begin()
+	return &EndpointService{
+			DB: tx,
+		}, func() {
+			tx.Rollback()
+		}, func() error {
+			return tx.Commit().Error
+		}
+}
+
+// CloneWithDb creates a new service instance with the given DB
+func (s *EndpointService) CloneWithDb(db *gorm.DB) *EndpointService {
+	return &EndpointService{
+		DB: db,
+	}
+}
+
 func (s *EndpointService) validate(db *gorm.DB, id int, input *models.Endpoint) error {
 	return nil
 }
@@ -76,8 +95,23 @@ func (s *EndpointService) Delete(ctx context.Context, id int) (int, error) {
 		return 0, err
 	}
 
-	if err := s.DB.WithContext(ctx).Delete(&endpoint).Error; err != nil {
+	tx := s.DB.WithContext(ctx).Begin()
+	defer tx.Rollback()
+
+	// Delete the endpoint
+	if err := tx.Delete(&endpoint).Error; err != nil {
 		return 0, err
 	}
-	return endpoint.Id, nil
+
+	// Clean up related dependencies
+	err = tx.Exec("DELETE FROM taggables WHERE taggable_type = ? AND taggable_id = ?", models.TaggableTypeEndpoints, id).Error
+	if err != nil {
+		return 0, err
+	}
+	err = tx.Exec("DELETE FROM notes WHERE reference_type = 'endpoints' AND reference_id = ?", id).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return endpoint.Id, tx.Commit().Error
 }

@@ -26,7 +26,10 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Value:         input.Value,
 	}
 
-	id, err := h.Service.Create(r.Context(), note)
+	noteService, close, commit := h.Service.NewInstance(r.Context())
+	defer close()
+
+	id, err := noteService.Create(r.Context(), note)
 	if err != nil {
 		utils.RespondError(w, err)
 		return
@@ -34,11 +37,18 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Connect tags if provided
 	if len(input.TagIds) > 0 {
-		err = h.TagService.ConnectTagsToReference(r.Context(), input.TagIds, "notes", id)
+		tagService := h.TagService.CloneWithDb(noteService.DB)
+		err = tagService.ConnectTagsToReference(r.Context(), input.TagIds, "notes", id)
 		if err != nil {
 			utils.RespondError(w, err)
 			return
 		}
+	}
+
+	err = commit()
+	if err != nil {
+		utils.RespondError(w, err)
+		return
 	}
 
 	utils.OkCreated(w, id)
